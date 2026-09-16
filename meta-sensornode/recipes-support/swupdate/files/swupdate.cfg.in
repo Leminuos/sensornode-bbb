@@ -1,0 +1,23 @@
+/*
+ * SWUpdate runtime configuration template.
+ *
+ */
+
+globals :
+{
+    verbose  = true;
+    loglevel = 5;
+    syslog   = true;
+    reboot-required = false;
+@PUBLIC_KEY_LINE@
+};
+
+download :
+{
+    retries = 3;
+    timeout = 1800;
+};
+
+identify : (
+    { name = "board"; value = "@BOARD_NAME@"; }
+);

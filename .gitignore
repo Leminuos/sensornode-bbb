@@ -1,0 +1,7 @@
+# Thư mục release
+/release/
+/tools/ota-server/manifest.json
+
+# Python bytecode cache
+__pycache__/
+*.pyc

@@ -1,0 +1,49 @@
+software =
+{
+    version     = "@VERSION@";
+    description = "SensorNode OTA update";
+
+    @BOARD_NAME@ = {
+        hardware-compatibility: [ "@HW_REVISION@" ];
+
+        stable: {
+            copy1: {
+                images: (
+                    {
+                        filename           = "@IMAGE_NAME@";
+                        device             = "/dev/mmcblk0p1";
+                        type               = "raw";
+                        compressed         = "zlib";
+                        sha256             = "$swupdate_get_sha256(@IMAGE_NAME@)";
+                    }
+                );
+                scripts: (
+                    {
+                        filename = "switch-slot.sh";
+                        type     = "shellscript";
+                        sha256   = "$swupdate_get_sha256(switch-slot.sh)";
+                    }
+                );
+            };
+
+            copy2: {
+                images: (
+                    {
+                        filename           = "@IMAGE_NAME@";
+                        device             = "/dev/mmcblk0p2";
+                        type               = "raw";
+                        compressed         = "zlib";
+                        sha256             = "$swupdate_get_sha256(@IMAGE_NAME@)";
+                    }
+                );
+                scripts: (
+                    {
+                        filename = "switch-slot.sh";
+                        type     = "shellscript";
+                        sha256   = "$swupdate_get_sha256(switch-slot.sh)";
+                    }
+                );
+            };
+        };
+    };
+}
