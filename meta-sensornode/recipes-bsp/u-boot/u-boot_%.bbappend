@@ -1,27 +1,28 @@
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
 SRC_URI:append = " \
-    file://u-boot-ota-env.txt \
     file://0001-bbb-ota.cfg \
-"
-
-SRC_URI:append = " \
-    ${@bb.utils.contains('DISTRO_FEATURES', 'secure-boot', \
-       'file://0001-bbb-ota-secure-boot.patch', \
-       'file://0001-bbb-ota-normal-boot.patch', d)} \
+    file://0001-bbb-ota-boot-env.patch \
 "
 
 # u-boot-tools-native cung cấp mkenvimage để build u-boot-env.raw
 DEPENDS:append = " u-boot-tools-native"
 
-do_compile:append() {
-    cat ${WORKDIR}/u-boot-ota-env.txt >> ${B}/u-boot-initial-env
-    mkenvimage -s 0x20000 -o ${B}/u-boot-env.raw ${B}/u-boot-initial-env
+do_configure:append() {
+    printf 'CONFIG_ENV_OFFSET=%s\nCONFIG_ENV_SIZE=%s\n' \
+        "${SENSORNODE_ENV_OFFSET}" "${SENSORNODE_ENV_SIZE}" > ${WORKDIR}/sensornode-env.cfg
+    merge_config.sh -m -O ${B} ${B}/.config ${WORKDIR}/sensornode-env.cfg
+    oe_runmake -C ${S} O=${B} olddefconfig
+
+    for opt in CONFIG_ENV_OFFSET=${SENSORNODE_ENV_OFFSET} CONFIG_ENV_SIZE=${SENSORNODE_ENV_SIZE}; do
+        if ! grep -qx "$opt" ${B}/.config; then
+            bbfatal "U-Boot .config does not contain $opt"
+        fi
+    done
 }
 
-do_install:append() {
-    install -d ${D}${sysconfdir}
-    install -m 0644 ${B}/u-boot-initial-env ${D}${sysconfdir}/u-boot-initial-env
+do_compile:append() {
+    mkenvimage -s ${SENSORNODE_ENV_SIZE} -o ${B}/u-boot-env.raw ${B}/u-boot-initial-env
 }
 
 do_deploy:append() {

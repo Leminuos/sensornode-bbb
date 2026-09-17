@@ -15,10 +15,10 @@ if [ -z "$url" ]; then
 fi
 
 # Chọn install set theo slot đang chạy:
-#   đang chạy rootA (mmcblk0p1) -> flash vào copy2 (mmcblk0p2 = rootB)
-#   đang chạy rootB (mmcblk0p2) -> flash vào copy1 (mmcblk0p1 = rootA)
+#   đang chạy slot A -> flash vào copy2 (slot B)
+#   đang chạy slot B -> flash vào copy1 (slot A)
 rootfs=$(swupdate -g)
-if [ "$rootfs" = '/dev/mmcblk0p1' ]; then
+if [ "$rootfs" = '@SLOT_A_DEV@' ]; then
     selection="-e stable,copy2"
 else
     selection="-e stable,copy1"

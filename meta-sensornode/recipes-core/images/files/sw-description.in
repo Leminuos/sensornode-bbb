@@ -7,41 +7,39 @@ software =
         hardware-compatibility: [ "@HW_REVISION@" ];
 
         stable: {
+            /* Running slot B: write slot A and trial-boot it */
             copy1: {
                 images: (
                     {
                         filename           = "@IMAGE_NAME@";
-                        device             = "/dev/mmcblk0p1";
+                        device             = "@SLOT_A_DEV@";
                         type               = "raw";
                         compressed         = "zlib";
                         sha256             = "$swupdate_get_sha256(@IMAGE_NAME@)";
                     }
                 );
-                scripts: (
-                    {
-                        filename = "switch-slot.sh";
-                        type     = "shellscript";
-                        sha256   = "$swupdate_get_sha256(switch-slot.sh)";
-                    }
+                bootenv: (
+                    { name = "active_slot"; value = "A"; },
+                    { name = "ustate";      value = "1"; },
+                    { name = "boot_count";  value = "0"; }
                 );
             };
 
+            /* Running slot A: write slot B and trial-boot it */
             copy2: {
                 images: (
                     {
                         filename           = "@IMAGE_NAME@";
-                        device             = "/dev/mmcblk0p2";
+                        device             = "@SLOT_B_DEV@";
                         type               = "raw";
                         compressed         = "zlib";
                         sha256             = "$swupdate_get_sha256(@IMAGE_NAME@)";
                     }
                 );
-                scripts: (
-                    {
-                        filename = "switch-slot.sh";
-                        type     = "shellscript";
-                        sha256   = "$swupdate_get_sha256(switch-slot.sh)";
-                    }
+                bootenv: (
+                    { name = "active_slot"; value = "B"; },
+                    { name = "ustate";      value = "1"; },
+                    { name = "boot_count";  value = "0"; }
                 );
             };
         };

@@ -8,9 +8,11 @@ Repo này chỉ chứa phần hệ điều hành — Yocto layer, distro, image,
 
 | Thư mục | Vai trò |
 |---|---|
-| `meta-sensornode-bsp/` | Yocto layer board support: định nghĩa machine, distro, kernel, network và recipe đóng gói Qt app |
-| `meta-sensornode/` | Yocto layer OTA: logic A/B, partition layout |
+| `meta-sensornode-bsp/` | Yocto layer BSP, chỉ chứa phần cứng: machine `bbb-sensornode`, kernel (devicetree + config fragment), U-Boot verified boot |
+| `meta-sensornode/` | Yocto layer product: distro `sensornode`, image, Qt app, OTA (SWUpdate, U-Boot A/B env, partition layout), `/data` |
 | `tools/` | Tool phía host: OTA firmware server, chụp màn hình TFT |
+
+Layer BSP không phụ thuộc layer product; layer product phụ thuộc BSP, meta-openembedded (`meta-oe`, `meta-networking`), meta-qt5 và meta-swupdate. Các giá trị dùng chung giữa nhiều nơi — kích thước slot/`/data`, offset U-Boot env, device của slot, tên image, metadata OTA — chỉ định nghĩa ở [`meta-sensornode/conf/include/sensornode-vars.inc`](meta-sensornode/conf/include/sensornode-vars.inc).
 
 ---
 
@@ -94,14 +96,13 @@ Mở `conf/local.conf` và set machine, distro của dự án:
 
 ```bitbake
 MACHINE = "bbb-sensornode"
-DISTRO  = "sensornode"
-
-# Optional — bật dev tools (i2c-tools, evtest, tslib-tests, systemd-analyze)
-DEVELOPMENT_BUILD = "1"
+DISTRO ?= "sensornode-dev"
 
 # Optional — override version OTA
 OTA_SW_VERSION = "0.1.0"
 ```
+
+`DISTRO` chọn build config: `sensornode-dev` (phát triển) hoặc `sensornode` (production). Hai distro khác nhau ở các `DISTRO_FEATURES` được bật, xem [docs/references/distro-features.md](docs/references/distro-features.md).
 
 ### 5. Build image
 
@@ -109,7 +110,7 @@ OTA_SW_VERSION = "0.1.0"
 bitbake sensornode-image
 ```
 
-Lần đầu mất khoảng 2–4 tiếng. Các lần sau dùng lại sstate-cache nên nhanh hơn nhiều. Sau khi xong, các artifact nằm ở `tmp/deploy/images/bbb-sensornode/`, quan trọng nhất là file flash SD card:
+Lần đầu mất khoảng 2–4 tiếng. Các lần sau dùng lại sstate-cache nên nhanh hơn nhiều. Sau khi xong, các artifact nằm ở `tmp-<distro>/deploy/images/bbb-sensornode/`, quan trọng nhất là file flash SD card:
 
 ```
 sensornode-image-bbb-sensornode.wic        ◄── file flash vào SD
@@ -123,7 +124,7 @@ sensornode-image-bbb-sensornode.wic.bmap   ◄── đi kèm để bmaptool fla
 **Cảnh báo:** xác định đúng device của SD card bằng `lsblk` trước khi flash, flash nhầm sang ổ cứng của host là mất toàn bộ dữ liệu. Unmount mọi partition đã auto-mount trước (`sudo umount /dev/sdX*`).
 
 ```bash
-cd ~/yocto/build/tmp/deploy/images/bbb-sensornode
+cd ~/yocto/build/tmp-<distro>/deploy/images/bbb-sensornode
 
 # Cách 1 — bmaptool (nhanh, khuyến nghị)
 sudo bmaptool copy sensornode-image-bbb-sensornode.wic /dev/sdX
@@ -144,7 +145,7 @@ sync
    - Baud: 115200, 8N1.
 4. Cấp nguồn.
 
-Khi console hiện `bbb-sensornode login:` là boot xong — đăng nhập user `root` (không có password).
+Khi console hiện `bbb-sensornode login:` là boot xong. Với `sensornode-dev` thì đăng nhập user `root` và không có password. Với bản `sensornode` khoá tài khoản root.
 
 ---
 
@@ -170,7 +171,7 @@ devtool reset sensornode-ui                           # quay lại fetch theo SR
 bitbake meta-toolchain-qt5
 ```
 
-Lệnh này sinh ra một bộ cài self-extracting `.sh` tại `tmp/deploy/sdk/`:
+Lệnh này sinh ra một bộ cài self-extracting `.sh` tại `tmp-<distro>/deploy/sdk/`:
 
 ```
 sensornode-glibc-x86_64-meta-toolchain-qt5-cortexa8hf-neon-bbb-sensornode-toolchain-<version>.sh
@@ -181,7 +182,7 @@ sensornode-glibc-x86_64-meta-toolchain-qt5-cortexa8hf-neon-bbb-sensornode-toolch
 Chạy bộ cài và chọn thư mục cài (mặc định `/opt/poky/<version>`):
 
 ```bash
-./tmp/deploy/sdk/sensornode-glibc-x86_64-meta-toolchain-qt5-*-toolchain-*.sh
+./tmp-<distro>/deploy/sdk/sensornode-glibc-x86_64-meta-toolchain-qt5-*-toolchain-*.sh
 ```
 
 #### 3. Source environment trước khi build
@@ -223,7 +224,7 @@ cd tools/ota-server
 python3 ota_server.py
 
 # Release bản mới: chỉ cần copy file .swu vào release/, server tự nhận trong vài giây
-cp ~/yocto/build/tmp/deploy/images/bbb-sensornode/sensornode-image-swu-*.swu ../../release/
+cp ~/yocto/build/tmp-<distro>/deploy/images/bbb-sensornode/sensornode-image-swu-*.swu ../../release/
 ```
 
 Cấu hình IP host, port, đường dẫn release, broker MQTT,... sửa trực tiếp ở đầu file `ota_server.py`.

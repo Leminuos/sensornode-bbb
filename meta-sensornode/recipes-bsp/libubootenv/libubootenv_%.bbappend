@@ -1,10 +1,9 @@
-FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
-
-SRC_URI:append:bbb-sensornode = " file://fw_env.config"
-
-do_install:append:bbb-sensornode() {
+do_install:append() {
     install -d ${D}${sysconfdir}
-    install -m 0644 ${WORKDIR}/fw_env.config ${D}${sysconfdir}/fw_env.config
+    printf '# Device          Offset      Size\n%s      %s    %s\n' \
+        "${SENSORNODE_ENV_DEV}" "${SENSORNODE_ENV_OFFSET}" "${SENSORNODE_ENV_SIZE}" \
+        > ${D}${sysconfdir}/fw_env.config
+    chmod 0644 ${D}${sysconfdir}/fw_env.config
 }
 
-FILES:${PN}:append:bbb-sensornode = " ${sysconfdir}/fw_env.config"
+FILES:${PN}:append = " ${sysconfdir}/fw_env.config"

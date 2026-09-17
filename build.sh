@@ -4,6 +4,7 @@ set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RELEASE_DIR="${RELEASE_DIR:-${ROOT_DIR}/release}"
 MACHINE="${MACHINE:-bbb-sensornode}"
+DISTRO="${DISTRO:-sensornode-dev}"
 TARGETS=(sensornode-image sensornode-image-swu)
 
 usage() {
@@ -13,6 +14,7 @@ Usage: ./build.sh /path/to/poky
 Environment overrides:
   RELEASE_DIR  Release output directory (default: repo/release)
   MACHINE      Deploy machine name (default: bbb-sensornode)
+  MACHINE      Deploy distro name (default: sensornode-dev)
 EOF
 }
 
@@ -64,7 +66,7 @@ for target in "${TARGETS[@]}"; do
     bitbake "${target}"
 done
 
-DEPLOY_DIR="${BUILD_DIR}/tmp/deploy/images/${MACHINE}"
+DEPLOY_DIR="${BUILD_DIR}/tmp-${DISTRO}/deploy/images/${MACHINE}"
 SWU_LINK="${DEPLOY_DIR}/sensornode-image-swu-${MACHINE}.swu"
 
 if [[ ! -e "${SWU_LINK}" ]]; then

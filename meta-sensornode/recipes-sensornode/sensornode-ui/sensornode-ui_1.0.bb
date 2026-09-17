@@ -1,7 +1,4 @@
 SUMMARY = "SensorNode Qt touchscreen HMI"
-DESCRIPTION = "Qt5 Widgets application: reads SHT30/BH1750 over I2C, renders the \
-dashboard on the ILI9341 framebuffer via linuxfb/tslib, publishes telemetry over \
-MQTT and drives the SWUpdate OTA flow."
 HOMEPAGE = "https://github.com/Leminuos/sensornode-ui"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=3da9cfbcb788c80a0384361b4de20420"
@@ -15,9 +12,11 @@ S = "${WORKDIR}/git"
 
 inherit cmake_qt5 systemd
 
-DEPENDS += " qtbase qtdeclarative qtsvg qtcharts libgpiod mosquitto"
+DEPENDS += "qtbase qtcharts mosquitto"
 
-EXTRA_OECMAKE += "${@'-DPRODUCTION_BUILD=ON' if d.getVar('DEVELOPMENT_BUILD') != '1' else '-DPRODUCTION_BUILD=OFF'}"
+RDEPENDS:${PN} = "qtbase-plugins tslib-conf ttf-dejavu-sans"
+
+EXTRA_OECMAKE += "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-debug', '-DPRODUCTION_BUILD=OFF', '-DPRODUCTION_BUILD=ON', d)}"
 
 SYSTEMD_SERVICE:${PN} = "sensornode-ui.service"
 SYSTEMD_AUTO_ENABLE:${PN} = "enable"

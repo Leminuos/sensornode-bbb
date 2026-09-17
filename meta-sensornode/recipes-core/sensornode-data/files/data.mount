@@ -8,7 +8,7 @@ Before=local-fs.target
 What=LABEL=data
 Where=/data
 Type=ext4
-Options=defaults
+Options=defaults,noatime
 
 [Install]
 WantedBy=local-fs.target

@@ -1,4 +1,0 @@
-boot_limit=3
-active_slot=A
-boot_count=0
-ustate=0

@@ -1,20 +1,19 @@
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
-require conf/ota-version.inc
-
 SRC_URI:append = " \
     file://defconfig \
     file://swupdate.cfg.in \
     file://09-swupdate-args \
 "
 
-SRC_URI:append = " ${@bb.utils.contains('DISTRO_FEATURES', 'secure-boot', 'file://signed-images.cfg', '', d)}"
+SRC_URI:append = " ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-secureboot', 'file://signed-images.cfg', '', d)}"
 
 DEPENDS:append = " systemd"
 SYSTEMD_AUTO_ENABLE:${PN} = "disable"
 
 SWUPDATE_PUBKEY_DST = "${sysconfdir}/swupdate/swupdate.pem"
-SECURE_BOOT_ENABLED = "${@bb.utils.contains('DISTRO_FEATURES', 'secure-boot', '1', '0', d)}"
+SWUPDATE_PUBKEY_SRC = "${UBOOT_SIGN_KEYDIR}/${UBOOT_SIGN_KEYNAME}.crt"
+SECURE_BOOT_ENABLED = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-secureboot', '1', '0', d)}"
 
 do_configure:prepend() {
     if [ "${SECURE_BOOT_ENABLED}" = "1" ]; then
@@ -22,7 +21,8 @@ do_configure:prepend() {
     fi
 }
 
-do_install[depends] += "${@bb.utils.contains('DISTRO_FEATURES', 'secure-boot', 'virtual/kernel:do_kernel_generate_rsa_keys', '', d)}"
+do_install[depends] += "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-secureboot', 'virtual/kernel:do_kernel_generate_rsa_keys', '', d)}"
+do_install[file-checksums] += "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-secureboot', '${SWUPDATE_PUBKEY_SRC}:%s' % os.path.exists(d.getVar('SWUPDATE_PUBKEY_SRC')), '', d)}"
 
 do_install:append() {
     install -d ${D}${sysconfdir}
@@ -31,7 +31,7 @@ do_install:append() {
 
     if [ "${SECURE_BOOT_ENABLED}" = "1" ]; then
         install -d ${D}${sysconfdir}/swupdate
-        install -m 0644 ${TOPDIR}/keys/dev.crt ${D}${SWUPDATE_PUBKEY_DST}
+        install -m 0644 ${SWUPDATE_PUBKEY_SRC} ${D}${SWUPDATE_PUBKEY_DST}
         sed -i "s#@PUBLIC_KEY_LINE@#    public-key-file = \"${SWUPDATE_PUBKEY_DST}\";#g" ${D}${sysconfdir}/swupdate.cfg
     else
         sed -i "/@PUBLIC_KEY_LINE@/d" ${D}${sysconfdir}/swupdate.cfg
@@ -42,11 +42,12 @@ do_install:append() {
     sed -i \
         -e "s#@BOARD_NAME@#${OTA_BOARD_NAME}#g" \
         -e "s#@HW_REVISION@#${OTA_HW_REVISION}#g" \
+        -e "s#@SLOT_A_DEV@#${SENSORNODE_SLOT_A_DEV}#g" \
         ${D}${bindir}/09-swupdate-args
 }
 
 FILES:${PN}:append = " \
     ${sysconfdir}/swupdate.cfg \
     ${bindir}/09-swupdate-args \
-    ${@bb.utils.contains('DISTRO_FEATURES', 'secure-boot', '${SWUPDATE_PUBKEY_DST}', '', d)} \
+    ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-secureboot', '${SWUPDATE_PUBKEY_DST}', '', d)} \
 "

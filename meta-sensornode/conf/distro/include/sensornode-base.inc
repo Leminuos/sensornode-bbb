@@ -1,6 +1,5 @@
 require conf/distro/poky.conf
 
-DISTRO = "sensornode"
 DISTRO_NAME = "SensorNode"
 DISTRO_VERSION = "1.0"
 
@@ -26,7 +25,7 @@ DISTRO_FEATURES:remove = " \
 
 DISTRO_FEATURES:append = " \
     systemd \
-    secure-boot \
+    sensornode-hmi \
 "
 
 PACKAGECONFIG_DISTRO:pn-qtbase = " \
@@ -43,3 +42,7 @@ TOOLCHAIN_TARGET_TASK:append = " \
 VIRTUAL-RUNTIME_init_manager = "systemd"
 DISTRO_FEATURES_BACKFILL_CONSIDERED += "sysvinit"
 VIRTUAL_RUNTIME_initscripts = "systemd-compat-units"
+
+TMPDIR = "${TOPDIR}/tmp-${DISTRO}"
+
+require conf/include/sensornode-vars.inc
