@@ -1,3 +1,5 @@
+assets/tmp
+
 # Thư mục release
 /release/
 /tools/ota-server/manifest.json
