@@ -11,14 +11,14 @@ Bảng tra các biến U-Boot env dùng cho cơ chế A/B.
 | Kích thước | `0x20000` |
 | Redundant | Không |
 
-Offset/size trong `0001-bbb-ota.cfg` (U-Boot) và `fw_env.config` (userspace) phải khớp nhau. Khi CRC env trên MMC sai, U-Boot dùng built-in env.
+Offset/size định nghĩa ở `SENSORNODE_ENV_OFFSET` / `SENSORNODE_ENV_SIZE` trong [sensornode-vars.inc](../../meta-sensornode/conf/include/sensornode-vars.inc).
 
 ## Biến trạng thái
 
 | Biến | Giá trị | Mặc định | Ai ghi |
 |---|---|---|---|
-| `active_slot` | `A`, `B` | `A` | `switch-slot.sh`, U-Boot khi rollback |
-| `ustate` | `0` stable, `1` đang thử | `0` | `switch-slot.sh` → `1`, `ota-confirm-boot.sh` / U-Boot rollback → `0` |
+| `active_slot` | `A`, `B` | `A` | SWUpdate `bootenv` của install set, U-Boot khi rollback |
+| `ustate` | `0` stable, `1` đang thử | `0` | SWUpdate `bootenv` → `1`, `ota-confirm-boot.sh` / U-Boot rollback → `0` |
 | `boot_count` | ≥ 0 | `0` | U-Boot tăng mỗi boot khi `ustate=1`, reset khi flash / commit / rollback |
 | `boot_limit` | > 0 | `3` | Không đổi lúc runtime |
 
@@ -29,9 +29,9 @@ Offset/size trong `0001-bbb-ota.cfg` (U-Boot) và `fw_env.config` (userspace) ph
 | `bootcmd` | `run ota_boot` |
 | `mmc_part` | `1` (slot A), `2` (slot B) |
 | `bootargs` | `root=/dev/mmcblk0p${mmc_part} ro rootwait console=ttyO0,115200n8 panic=10` |
-| `fit_image` | `/boot/fitImage` (secure-boot) |
-| `kernel_image` | `/boot/zImage` (normal boot) |
-| `fdtfile` | `/boot/am335x-boneblack.dtb` (normal boot) |
+| `fit_image` | `/boot/fitImage` (U-Boot build với `CONFIG_FIT_SIGNATURE`, tức distro feature `sensornode-secureboot`) |
+| `kernel_image` | `/boot/zImage` (U-Boot build không có `CONFIG_FIT_SIGNATURE`) |
+| `fdtfile` | `/boot/am335x-boneblack.dtb` (U-Boot build không có `CONFIG_FIT_SIGNATURE`) |
 
 ## Script
 

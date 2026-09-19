@@ -53,10 +53,3 @@ JSON, cùng nội dung với `GET /manifest.json` của OTA server.
 | WebSockets | 9001 | `websockets` | `allow_anonymous true` (chỉ lab) |
 
 Cấu hình broker: [mqtt-broker-setup.md](../guides/mqtt-broker-setup.md).
-
-## TODO
-
-- Topic chứa device ID (nhiều node cùng broker hiện sẽ ghi đè retained message của nhau).
-- Payload JSON có timestamp, đơn vị và version schema.
-- Topic trạng thái online/offline (Last Will).
-- Auth / TLS.

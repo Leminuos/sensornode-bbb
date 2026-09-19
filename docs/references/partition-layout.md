@@ -52,7 +52,8 @@ File không có rotation, tăng không giới hạn.
 
 ## Lưu ý khi sửa layout
 
-- Đổi offset/size env phải sửa đồng bộ `0001-bbb-ota.cfg`, `fw_env.config` và `mkenvimage -s`.
-- Đổi kích thước `/data` phải sửa cả `--fixed-size` trong wks và `DATA_PARTITION_SIZE_KiB` trong `data-partition.bb`.
+- Offset/size env, kích thước slot, kích thước `/data`, device của slot A/B và tên file ext4 của `/data` chỉ định nghĩa ở [sensornode-vars.inc](../../meta-sensornode/conf/include/sensornode-vars.inc).
+- Script `ota_pick_slot` trong built-in env của U-Boot map `active_slot` → `mmc_part` (A=1, B=2) và dựng `root=/dev/mmcblk0p${mmc_part}`. Nếu đổi `SENSORNODE_SLOT_A_DEV` / `SENSORNODE_SLOT_B_DEV` phải sửa cả patch U-Boot.
+- Rootfs ext4 bị giới hạn bởi `IMAGE_ROOTFS_MAXSIZE` = kích thước slot: image vượt quá slot sẽ fail lúc build thay vì fail khi SWUpdate ghi raw.
 - Dòng `/data` trong wks phải giữ `--fstype=ext4` và không dùng `--label` với `--source rawcopy`.
 - Mọi thay đổi layout đều không OTA được, phải flash lại SD card.

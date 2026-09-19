@@ -37,10 +37,11 @@ cat /etc/sw-versions  /etc/hwrevision
 
 ```bash
 echo 'OTA_SW_VERSION = "0.2.0"' >> conf/local.conf
-bitbake sensornode-image-swu
+bitbake sensornode-image-swu                           # distro mặc định trong local.conf
+DISTRO=sensornode bitbake sensornode-image-swu         # bản production
 ```
 
-Output ở `tmp/deploy/images/bbb-sensornode/`:
+Output ở `tmp-<distro>/deploy/images/bbb-sensornode/`:
 
 ```
 sensornode-image-swu-bbb-sensornode-0.2.0.swu      ◄── file release
@@ -54,10 +55,11 @@ File `.swu` thực ra là cpio archive chứa `sw-description` + rootfs `ext4.gz
 cpio -t < sensornode-image-swu-bbb-sensornode.swu
 # sw-description
 # sensornode-image-bbb-sensornode.ext4.gz
-# switch-slot.sh
 ```
 
-Khi `secure-boot` bật, `sw-description` được ký CMS/X.509 và descriptor có hash SHA256 cho rootfs image + `switch-slot.sh`. Có thể kiểm tra package có chữ ký bằng:
+Mỗi install set trong `sw-description` (`copy1` → slot A, `copy2` → slot B) có mục `bootenv` đặt `active_slot`, `ustate=1`, `boot_count=0`. SWUpdate chỉ ghi các biến này vào U-Boot env (một lần ghi) sau khi toàn bộ image đã cài thành công, nên slot được boot thử luôn là slot vừa được ghi.
+
+Khi `sensornode-secureboot` bật, `sw-description` được ký CMS/X.509 và descriptor có hash SHA256 cho rootfs image. Có thể kiểm tra package có chữ ký bằng:
 
 ```bash
 cpio -t < sensornode-image-swu-bbb-sensornode.swu | grep -E 'sw-description|sig'
@@ -68,13 +70,13 @@ cpio -t < sensornode-image-swu-bbb-sensornode.swu | grep -E 'sw-description|sig'
 ```bash
 cd tools/ota-server
 python3 ota_server.py
-cp /path/to/tmp/deploy/images/bbb-sensornode/sensornode-image-swu-bbb-sensornode-0.2.0.swu ../../release/
+cp /path/to/tmp-<distro>/deploy/images/bbb-sensornode/sensornode-image-swu-bbb-sensornode-0.2.0.swu ../../release/
 ```
 
 Ở terminal khác, copy `.swu` vào `release/` ở gốc repo — server tự nhận trong vài giây, không cần restart:
 
 ```bash
-cp /path/to/tmp/deploy/images/bbb-sensornode/sensornode-image-swu-bbb-sensornode-0.2.0.swu /path/to/SensorNode-BBB/release/
+cp /path/to/tmp-<distro>/deploy/images/bbb-sensornode/sensornode-image-swu-bbb-sensornode-0.2.0.swu /path/to/SensorNode-BBB/release/
 ```
 
 ## 4. Theo dõi quá trình flash
@@ -83,9 +85,9 @@ cp /path/to/tmp/deploy/images/bbb-sensornode/sensornode-image-swu-bbb-sensornode
 
 Progress đi qua các giai đoạn:
 - `Downloading` — SWUpdate tự tải `.swu` từ URL
-- `Verifying` — SWUpdate parse `sw-description`, check hardware-compatibility, verify CMS signature và hash nếu `secure-boot` bật
+- `Verifying` — SWUpdate parse `sw-description`, check hardware-compatibility, verify CMS signature và hash nếu `sensornode-secureboot` bật
 - `Installing` — flash raw vào partition đích
-- `Success` — postinst đã chạy, app hoặc người dùng quyết định reboot
+- `Success` — image đã ghi xong và `bootenv` đã được áp dụng, app hoặc người dùng quyết định reboot
 
 ### 4.2. Trên serial console hoặc SSH
 
@@ -99,8 +101,6 @@ Sẽ thấy:
 
 ```
 swupdate[xxx]: SWUPDATE running :  [start_thread] Software updated successfully
-swupdate[xxx]: SWUPDATE running :  [installer_thread]  Now executing post-install scripts
-swupdate[xxx]: switch-slot.sh: Current slot: A, switching to: B
 swupdate[xxx]: SWUPDATE successful !
 ```
 
@@ -233,11 +233,11 @@ cat /etc/hwrevision
 # bbb-sensornode 1.0
 ```
 
-Phải khớp dòng `hardware-compatibility: [ "1.0" ]` trong [sw-description.in](../../meta-sensornode/recipes-extended/images/beaglebone/sw-description.in).
+Phải khớp dòng `hardware-compatibility: [ "1.0" ]` trong [sw-description.in](../../meta-sensornode/recipes-core/images/files/sw-description.in). Giá trị lấy từ `OTA_HW_REVISION` trong [sensornode-vars.inc](../../meta-sensornode/conf/include/sensornode-vars.inc).
 
 ### 8.2. SWUpdate báo lỗi signature hoặc hash
 
-Khi `secure-boot` bật, `.swu` phải được ký bằng private key tương ứng với certificate trong `/etc/swupdate/swupdate.pem`, và payload phải khớp SHA256 trong `sw-description`. Check:
+Khi `sensornode-secureboot` bật, `.swu` phải được ký bằng private key tương ứng với certificate trong `/etc/swupdate/swupdate.pem` và payload phải khớp SHA256 trong `sw-description`. Check:
 
 ```bash
 journalctl -t swupdate -n 100
@@ -264,7 +264,7 @@ Check env có thực sự đổi không:
 fw_printenv active_slot ustate
 ```
 
-Nếu `active_slot` chưa đổi -> `switch-slot.sh` đã không chạy -> kiểm tra `journalctl -t swupdate` xem postinst có error.
+Nếu `active_slot` chưa đổi -> SWUpdate đã không áp dụng `bootenv` (chỉ xảy ra khi cài image lỗi hoặc ghi env lỗi) -> kiểm tra `journalctl -t swupdate` và `/etc/fw_env.config`.
 
 ### 8.5. Board lặp lại retry forever, không rollback
 
@@ -278,7 +278,7 @@ saveenv
 Cần re-flash `u-boot-env.raw` từ build host:
 
 ```bash
-sudo dd if=u-boot-env.raw of=/dev/sdX seek=$((0x260000 / 512)) bs=512
+sudo dd if=u-boot-env.raw of=/dev/sdX seek=$((0x260000 / 512)) bs=512   # offset = SENSORNODE_ENV_OFFSET
 ```
 
 (với SD đã rút ra cắm vào host).
