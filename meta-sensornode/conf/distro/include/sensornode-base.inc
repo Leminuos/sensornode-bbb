@@ -23,10 +23,7 @@ DISTRO_FEATURES:remove = " \
     multiarch \
 "
 
-DISTRO_FEATURES:append = " \
-    systemd \
-    sensornode-hmi \
-"
+DISTRO_FEATURES:append = " systemd"
 
 PACKAGECONFIG_DISTRO:pn-qtbase = " \
     linuxfb \

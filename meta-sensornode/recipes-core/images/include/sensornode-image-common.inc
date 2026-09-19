@@ -4,8 +4,6 @@ python () {
         bb.fatal("sensornode-readonly requires sensornode-ota")
     if 'sensornode-secureboot' in df and 'sensornode-ota' not in df:
         bb.fatal("sensornode-secureboot is only supported together with sensornode-ota")
-    if 'sensornode-debug' in df and 'sensornode-readonly' in df:
-        bb.warn("sensornode-debug + sensornode-readonly is an untested combination")
 }
 
 IMAGE_FSTYPES = " wic wic.bmap ext4.gz"
@@ -46,15 +44,18 @@ IMAGE_FEATURES:append = " ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-re
     'read-only-rootfs', '', d)}"
 
 # ---------------------------------------------------------------------------
-# sensornode-debug
+# sensornode-login
 # ---------------------------------------------------------------------------
-IMAGE_FEATURES:append = " ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-debug', \
+IMAGE_FEATURES:append = " ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-login', \
     'debug-tweaks ssh-server-openssh', '', d)}"
 
-IMAGE_INSTALL:append = " ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-debug', \
-    'i2c-tools evtest strace lsof mosquitto-clients inotify-tools \
-     tslib tslib-calibrate tslib-tests systemd-analyze', '', d)}"
-
-IMAGE_FEATURES:remove = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-debug', '', \
+IMAGE_FEATURES:remove = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-login', '', \
     'debug-tweaks empty-root-password allow-empty-password allow-root-login \
      post-install-logging ssh-server-openssh ssh-server-dropbear', d)}"
+
+# ---------------------------------------------------------------------------
+# sensornode-devtools
+# ---------------------------------------------------------------------------
+IMAGE_INSTALL:append = " ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-devtools', \
+    'i2c-tools evtest strace lsof mosquitto-clients inotify-tools \
+     tslib tslib-calibrate tslib-tests systemd-analyze', '', d)}"
