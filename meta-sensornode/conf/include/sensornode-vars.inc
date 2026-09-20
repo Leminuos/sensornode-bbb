@@ -20,3 +20,8 @@ SENSORNODE_ENV_OFFSET_KiB    = "${@int(d.getVar('SENSORNODE_ENV_OFFSET'), 16) //
 OTA_SW_VERSION              ?= "0.1.3"
 OTA_HW_REVISION             ?= "1.0"
 OTA_BOARD_NAME              ?= "bbb-sensornode"
+
+# Signing keys
+SENSORNODE_DEV_KEYDIR       ?= "${@os.path.normpath(os.path.join(d.getVar('LAYERDIR_sensornode'), '../keys/dev'))}"
+SENSORNODE_PRODUCT_KEYDIR   ?= "${@os.path.normpath(os.path.join(d.getVar('LAYERDIR_sensornode'), '../keys/product'))}"
+SENSORNODE_KEYNAME          ?= "${@os.path.basename(d.getVar('SENSORNODE_KEYDIR'))}"
