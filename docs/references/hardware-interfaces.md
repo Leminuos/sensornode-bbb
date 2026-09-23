@@ -33,3 +33,12 @@ Bảng tra cách từng linh kiện nối vào BeagleBone Black: bus, địa ch�
 | Touch IRQ (T_INT) | P9_12 |
 | Backlight PWM | P9_14 |
 | UART0 debug | J1: GND pin 1, RX pin 4, TX pin 5 |
+
+## Beaglebone black pinout
+
+![bbb-pinout](../../assets/img/bbb-pinout.png)
+
+## ILI9341 pinout
+
+![ili9341-pinout](../../assets/img/ili9341-pinout.png)
+

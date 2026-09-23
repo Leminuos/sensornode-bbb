@@ -100,11 +100,13 @@ Các thuộc tính của SoC/board nên nằm ở machine.
 
 ```bitbake
 UBOOT_SIGN_ENABLE       = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-secureboot', '1', '0', d)}"
-UBOOT_SIGN_KEYDIR       ?= "${TOPDIR}/keys"
-UBOOT_SIGN_KEYNAME      ?= "dev"
-FIT_GENERATE_KEYS       = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-secureboot', '1', '0', d)}"
+UBOOT_SIGN_KEYDIR       ?= "${SENSORNODE_KEYDIR}"
+UBOOT_SIGN_KEYNAME      ?= "${SENSORNODE_KEYNAME}"
+
+FIT_GENERATE_KEYS       = "0"
 FIT_SIGN_ALG            = "rsa2048"
 FIT_HASH_ALG            = "sha256"
+
 KERNEL_IMAGETYPE        = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-secureboot', 'fitImage', 'zImage', d)}"
 KERNEL_CLASSES:append   = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-secureboot', ' kernel-fitimage', '', d)}"
 ```

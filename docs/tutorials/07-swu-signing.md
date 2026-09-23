@@ -106,7 +106,6 @@ do_configure:prepend() {
     fi
 }
 
-do_install[depends] += "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-secureboot', 'virtual/kernel:do_kernel_generate_rsa_keys', '', d)}"
 do_install[file-checksums] += "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-secureboot', '${SWUPDATE_PUBKEY_SRC}:%s' % os.path.exists(d.getVar('SWUPDATE_PUBKEY_SRC')), '', d)}"
 
 do_install:append() {

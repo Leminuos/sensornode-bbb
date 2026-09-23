@@ -88,10 +88,10 @@ File mô tả `.its` mà Yocto generate khi build production (`deploy/images/…
 
 ```bitbake
 UBOOT_SIGN_ENABLE       = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-secureboot', '1', '0', d)}"
-UBOOT_SIGN_KEYDIR       ?= "${TOPDIR}/keys"
-UBOOT_SIGN_KEYNAME      ?= "dev"
+UBOOT_SIGN_KEYDIR       ?= "${SENSORNODE_KEYDIR}"
+UBOOT_SIGN_KEYNAME      ?= "${SENSORNODE_KEYNAME}"
 
-FIT_GENERATE_KEYS       = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-secureboot', '1', '0', d)}"
+FIT_GENERATE_KEYS       = "0"
 FIT_SIGN_ALG            = "rsa2048"
 FIT_HASH_ALG            = "sha256"
 
@@ -104,7 +104,7 @@ KERNEL_CLASSES:append   = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-s
 | `KERNEL_CLASSES` + `kernel-fitimage` | Bật class tạo FIT từ kernel và DTB |
 | `KERNEL_IMAGETYPE = fitImage` | File kernel cài vào `/boot` là `fitImage` thay cho `zImage` |
 | `UBOOT_SIGN_ENABLE = 1` | Sign FIT và nhúng public key vào DTB của U-Boot |
-| `UBOOT_SIGN_KEYDIR` | Thư mục chứa `dev.key` (private) và `dev.crt` (certificate). Mặc định trong build directory |
+| `UBOOT_SIGN_KEYDIR` | Thư mục chứa `dev.key` (private) và `dev.crt` (certificate). |
 | `UBOOT_SIGN_KEYNAME` | Tên cặp key → `dev.key`, `dev.crt`, node `key-dev` |
 | `FIT_GENERATE_KEYS = 1` | Chưa có key trong thư mục thì tự sinh |
 | `FIT_SIGN_ALG`, `FIT_HASH_ALG` | RSA 2048 bit, SHA-256 |
