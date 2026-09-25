@@ -5,16 +5,19 @@ SRC_URI:append = " \
     file://0001-bbb-ota-boot-env.patch \
 "
 
-# u-boot-tools-native cung cấp mkenvimage để build u-boot-env.raw
+# u-boot-tools-native cung cấp mkenvimage để build u-boot-env.raw.
+# u-boot-env.raw ở định dạng redundant (-r), ghi giống nhau lên cả hai vùng env.
 DEPENDS:append = " u-boot-tools-native"
 
 do_configure:append() {
-    printf 'CONFIG_ENV_OFFSET=%s\nCONFIG_ENV_SIZE=%s\n' \
-        "${SENSORNODE_ENV_OFFSET}" "${SENSORNODE_ENV_SIZE}" > ${WORKDIR}/sensornode-env.cfg
+    printf 'CONFIG_ENV_OFFSET=%s\nCONFIG_ENV_SIZE=%s\nCONFIG_SYS_REDUNDAND_ENVIRONMENT=y\nCONFIG_ENV_OFFSET_REDUND=%s\n' \
+        "${SENSORNODE_ENV_OFFSET}" "${SENSORNODE_ENV_SIZE}" "${SENSORNODE_ENV_OFFSET_REDUND}" \
+        > ${WORKDIR}/sensornode-env.cfg
     merge_config.sh -m -O ${B} ${B}/.config ${WORKDIR}/sensornode-env.cfg
     oe_runmake -C ${S} O=${B} olddefconfig
 
-    for opt in CONFIG_ENV_OFFSET=${SENSORNODE_ENV_OFFSET} CONFIG_ENV_SIZE=${SENSORNODE_ENV_SIZE}; do
+    for opt in CONFIG_ENV_OFFSET=${SENSORNODE_ENV_OFFSET} CONFIG_ENV_SIZE=${SENSORNODE_ENV_SIZE} \
+               CONFIG_SYS_REDUNDAND_ENVIRONMENT=y CONFIG_ENV_OFFSET_REDUND=${SENSORNODE_ENV_OFFSET_REDUND}; do
         if ! grep -qx "$opt" ${B}/.config; then
             bbfatal "U-Boot .config does not contain $opt"
         fi
@@ -22,7 +25,7 @@ do_configure:append() {
 }
 
 do_compile:append() {
-    mkenvimage -s ${SENSORNODE_ENV_SIZE} -o ${B}/u-boot-env.raw ${B}/u-boot-initial-env
+    mkenvimage -r -s ${SENSORNODE_ENV_SIZE} -o ${B}/u-boot-env.raw ${B}/u-boot-initial-env
 }
 
 do_deploy:append() {
