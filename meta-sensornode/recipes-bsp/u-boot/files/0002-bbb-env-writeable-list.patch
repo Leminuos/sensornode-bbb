@@ -1,0 +1,50 @@
+From: sensornode <noreply@local>
+Subject: am335x_evm: restrict the stored environment to the A/B state
+
+diff --git a/board/ti/am335x/board.c b/board/ti/am335x/board.c
+--- a/board/ti/am335x/board.c
++++ b/board/ti/am335x/board.c
+@@ -980,3 +980,25 @@
+ 	.plat = &am335x_mmc1_plat,
+ };
+ #endif
++
++#if defined(CONFIG_ENV_WRITEABLE_LIST) && !defined(CONFIG_SPL_BUILD)
++/*
++ * Load the built-in default environment first (nowhere), then let the MMC
++ * copy override only the variables marked writeable. Saving always goes
++ * to MMC.
++ */
++enum env_location env_get_location(enum env_operation op, int prio)
++{
++	if (op == ENVOP_SAVE || op == ENVOP_ERASE)
++		return ENVL_MMC;
++
++	switch (prio) {
++	case 0:
++		return ENVL_NOWHERE;
++	case 1:
++		return ENVL_MMC;
++	default:
++		return ENVL_UNKNOWN;
++	}
++}
++#endif
+diff --git a/include/configs/am335x_evm.h b/include/configs/am335x_evm.h
+--- a/include/configs/am335x_evm.h
++++ b/include/configs/am335x_evm.h
+@@ -343,4 +343,14 @@
+ #define CLK_SYNTHESIZER_I2C_ADDR 0x65
+ #endif
+ 
++/*
++ * Only the A/B state may be taken from the environment stored on the SD
++ * card; every other variable comes from the built-in (signed) default
++ * environment.
++ */
++#ifdef CONFIG_ENV_WRITEABLE_LIST
++#define CONFIG_ENV_FLAGS_LIST_STATIC \
++	"active_slot:sw,ustate:sw,boot_count:sw"
++#endif
++
+ #endif	/* ! __CONFIG_AM335X_EVM_H */
