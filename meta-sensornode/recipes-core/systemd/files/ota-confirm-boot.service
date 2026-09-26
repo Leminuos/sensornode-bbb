@@ -1,11 +1,10 @@
 [Unit]
 Description=OTA Boot Confirmation
-After=local-fs.target
-Before=multi-user.target
+After=local-fs.target sensornode-ui.service
 ConditionPathExists=/usr/bin/fw_setenv
 
 [Service]
-Type=oneshot
+Type=simple
 ExecStart=/usr/bin/ota-confirm-boot.sh
 RemainAfterExit=yes
 

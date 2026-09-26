@@ -2,6 +2,8 @@
 Description=SensorNode Qt HMI
 After=data.mount network.target
 Wants=data.mount
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 Type=simple

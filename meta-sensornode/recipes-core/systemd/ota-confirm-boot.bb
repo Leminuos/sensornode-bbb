@@ -10,7 +10,7 @@ S = "${WORKDIR}"
 
 inherit systemd
 
-RDEPENDS:${PN} = "libubootenv-bin systemd"
+RDEPENDS:${PN} = "libubootenv-bin systemd i2c-tools"
 
 SYSTEMD_SERVICE:${PN}     = "ota-confirm-boot.service"
 SYSTEMD_AUTO_ENABLE:${PN} = "enable"
