@@ -6,4 +6,4 @@ part --source rawcopy --ondisk mmcblk0 --no-table --align ${SENSORNODE_ENV_OFFSE
 part --source rawcopy --ondisk mmcblk0 --no-table --align ${SENSORNODE_ENV_OFFSET_REDUND_KiB} --sourceparams="file=u-boot-env.raw"
 
 part /     --source rootfs  --ondisk mmcblk0 --fstype=ext4 --label rootA --align 4096 --fixed-size ${SENSORNODE_SLOT_SIZE_MiB} --active --use-uuid
-part /data --source rawcopy --ondisk mmcblk0 --fstype=ext4 --align 4096 --fixed-size ${SENSORNODE_DATA_SIZE_MiB} --sourceparams="file=${SENSORNODE_DATA_IMG}"
+part       --source rawcopy --ondisk mmcblk0 --fstype=ext4 --align 4096 --fixed-size ${SENSORNODE_DATA_SIZE_MiB} --sourceparams="file=${SENSORNODE_DATA_IMG}"
