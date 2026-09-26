@@ -41,7 +41,13 @@ ROOTFS_POSTPROCESS_COMMAND += "${@bb.utils.contains('DISTRO_FEATURES', 'sensorno
 # sensornode-readonly
 # ---------------------------------------------------------------------------
 IMAGE_FEATURES:append = " ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-readonly', \
-    'read-only-rootfs', '', d)}"
+    'read-only-rootfs overlayfs-etc', '', d)}"
+
+OVERLAYFS_ETC_MOUNT_POINT = "/data"
+OVERLAYFS_ETC_DEVICE = "LABEL=data"
+OVERLAYFS_ETC_FSTYPE = "ext4"
+OVERLAYFS_ETC_MOUNT_OPTIONS = "defaults,noatime"
+OVERLAYFS_ETC_CREATE_MOUNT_DIRS = "0"
 
 # ---------------------------------------------------------------------------
 # sensornode-login
