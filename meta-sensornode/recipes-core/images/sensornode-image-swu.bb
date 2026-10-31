@@ -8,7 +8,7 @@ inherit swupdate
 
 COMPATIBLE_MACHINE = "bbb-sensornode"
 
-SRC_URI = "file://sw-description.in"
+SRC_URI = "file://sw-description"
 
 IMAGE_NAME = "${IMAGE_BASENAME}-${MACHINE}-${PV}"
 IMAGE_LINK_NAME = "${IMAGE_BASENAME}-${MACHINE}"
@@ -26,14 +26,4 @@ SWUPDATE_SIGNING = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-securebo
 SWUPDATE_CMS_KEY  = "${UBOOT_SIGN_KEYDIR}/${UBOOT_SIGN_KEYNAME}.key"
 SWUPDATE_CMS_CERT = "${UBOOT_SIGN_KEYDIR}/${UBOOT_SIGN_KEYNAME}.crt"
 
-do_render_swdesc() {
-    sed -e "s|@VERSION@|${OTA_SW_VERSION}|g" \
-        -e "s|@HW_REVISION@|${OTA_HW_REVISION}|g" \
-        -e "s|@BOARD_NAME@|${OTA_BOARD_NAME}|g" \
-        -e "s|@IMAGE_NAME@|${SENSORNODE_IMAGE}-${MACHINE}.ext4.gz|g" \
-        -e "s|@SLOT_A_DEV@|${SENSORNODE_SLOT_A_DEV}|g" \
-        -e "s|@SLOT_B_DEV@|${SENSORNODE_SLOT_B_DEV}|g" \
-        ${WORKDIR}/sw-description.in > ${WORKDIR}/sw-description
-}
-
-addtask render_swdesc after do_unpack before do_swuimage
+do_swuimage[vardeps] += "${@swupdate_find_bitbake_variables(d)}"

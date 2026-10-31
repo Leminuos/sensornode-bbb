@@ -1,21 +1,21 @@
 software =
 {
-    version     = "@VERSION@";
+    version     = "@@OTA_SW_VERSION@@";
     description = "SensorNode OTA update";
 
-    @BOARD_NAME@ = {
-        hardware-compatibility: [ "@HW_REVISION@" ];
+    @@OTA_BOARD_NAME@@ = {
+        hardware-compatibility: [ "@@OTA_HW_REVISION@@" ];
 
         stable: {
             /* Running slot B: write slot A and trial-boot it */
             copy1: {
                 images: (
                     {
-                        filename           = "@IMAGE_NAME@";
-                        device             = "@SLOT_A_DEV@";
+                        filename           = "@@SENSORNODE_IMAGE@@-@@MACHINE@@.ext4.gz";
+                        device             = "@@SENSORNODE_SLOT_A_DEV@@";
                         type               = "raw";
                         compressed         = "zlib";
-                        sha256             = "$swupdate_get_sha256(@IMAGE_NAME@)";
+                        sha256             = "$swupdate_get_sha256(@@SENSORNODE_IMAGE@@-@@MACHINE@@.ext4.gz)";
                     }
                 );
                 bootenv: (
@@ -29,11 +29,11 @@ software =
             copy2: {
                 images: (
                     {
-                        filename           = "@IMAGE_NAME@";
-                        device             = "@SLOT_B_DEV@";
+                        filename           = "@@SENSORNODE_IMAGE@@-@@MACHINE@@.ext4.gz";
+                        device             = "@@SENSORNODE_SLOT_B_DEV@@";
                         type               = "raw";
                         compressed         = "zlib";
-                        sha256             = "$swupdate_get_sha256(@IMAGE_NAME@)";
+                        sha256             = "$swupdate_get_sha256(@@SENSORNODE_IMAGE@@-@@MACHINE@@.ext4.gz)";
                     }
                 );
                 bootenv: (
