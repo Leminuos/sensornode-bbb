@@ -9,11 +9,9 @@ HEALTH_TIMEOUT_SEC=120
 HEALTH_POLL_SEC=5
 
 UI_UNIT="sensornode-ui.service"
-UI_STABLE_SEC=30
-
-I2C_BUS=1
-SHT30_ADDR=0x44
-BH1750_ADDR=0x23
+TELEMETRY_UNIT="sensornode-telemetryd.service"
+OTA_UNIT="sensornode-otad.service"
+STABLE_SEC=30
 
 DATA_DIR="/data"
 
@@ -27,75 +25,53 @@ uptime_sec() {
     cut -d. -f1 /proc/uptime
 }
 
-sht3x_crc8() {
-    crc=255
-    for byte in "$@"; do
-        crc=$(( crc ^ byte ))
-        bit=0
-        while [ "${bit}" -lt 8 ]; do
-            if [ $(( crc & 128 )) -ne 0 ]; then
-                crc=$(( ((crc << 1) ^ 49) & 255 ))
-            else
-                crc=$(( (crc << 1) & 255 ))
-            fi
-            bit=$(( bit + 1 ))
-        done
-    done
-    echo "${crc}"
+check_unit() {
+    unit="$1"
+
+    state=$(systemctl is-active "${unit}")
+    if [ "${state}" != "active" ]; then
+        reason="${unit} is ${state}"
+        return 1
+    fi
+
+    enter_usec=$(systemctl show -p ActiveEnterTimestampMonotonic --value "${unit}")
+    active_sec=$(( $(uptime_sec) - enter_usec / 1000000 ))
+    if [ "${active_sec}" -lt "${STABLE_SEC}" ]; then
+        reason="${unit} active for ${active_sec}s < ${STABLE_SEC}s"
+        return 1
+    fi
 }
 
 check_ui() {
     load_state=$(systemctl show -p LoadState --value "${UI_UNIT}")
     [ "${load_state}" = "loaded" ] || return 0
 
-    state=$(systemctl is-active "${UI_UNIT}")
-    if [ "${state}" != "active" ]; then
-        reason="${UI_UNIT} is ${state}"
-        return 1
-    fi
-
-    enter_usec=$(systemctl show -p ActiveEnterTimestampMonotonic --value "${UI_UNIT}")
-    active_sec=$(( $(uptime_sec) - enter_usec / 1000000 ))
-    if [ "${active_sec}" -lt "${UI_STABLE_SEC}" ]; then
-        reason="${UI_UNIT} active for ${active_sec}s < ${UI_STABLE_SEC}s"
-        return 1
-    fi
+    check_unit "${UI_UNIT}"
 }
 
-check_sht30() {
-    if ! i2ctransfer -y "${I2C_BUS}" w2@"${SHT30_ADDR}" 0x24 0x00 >/dev/null 2>&1; then
-        reason="SHT30 (${SHT30_ADDR}) does not ACK the measure command"
-        return 1
-    fi
-    usleep 50000
+# telemetryd giữ bus I2C và DB, script chỉ đọc kết quả qua STATUS= của daemon.
+check_telemetry() {
+    check_unit "${TELEMETRY_UNIT}" || return 1
 
-    data=$(i2ctransfer -y "${I2C_BUS}" r6@"${SHT30_ADDR}" 2>/dev/null) || data=""
-    set -- ${data}
-    if [ $# -ne 6 ]; then
-        reason="SHT30 (${SHT30_ADDR}) read failed"
-        return 1
-    fi
-
-    if [ "$(sht3x_crc8 "$1" "$2")" -ne $(( $3 )) ] || \
-       [ "$(sht3x_crc8 "$4" "$5")" -ne $(( $6 )) ]; then
-        reason="SHT30 (${SHT30_ADDR}) CRC mismatch: ${data}"
-        return 1
-    fi
+    status=$(systemctl show -p StatusText --value "${TELEMETRY_UNIT}")
+    case "${status}" in
+        *sensors=ok*) ;;
+        *)
+            reason="${TELEMETRY_UNIT} sensors not ok: ${status}"
+            return 1
+            ;;
+    esac
+    case "${status}" in
+        *db=ok*) ;;
+        *)
+            reason="${TELEMETRY_UNIT} database not ok: ${status}"
+            return 1
+            ;;
+    esac
 }
 
-check_bh1750() {
-    if ! i2ctransfer -y "${I2C_BUS}" w1@"${BH1750_ADDR}" 0x20 >/dev/null 2>&1; then
-        reason="BH1750 (${BH1750_ADDR}) does not ACK the measure command"
-        return 1
-    fi
-    usleep 180000
-
-    data=$(i2ctransfer -y "${I2C_BUS}" r2@"${BH1750_ADDR}" 2>/dev/null) || data=""
-    set -- ${data}
-    if [ $# -ne 2 ]; then
-        reason="BH1750 (${BH1750_ADDR}) read failed"
-        return 1
-    fi
+check_ota() {
+    check_unit "${OTA_UNIT}"
 }
 
 check_data() {
@@ -112,7 +88,7 @@ check_data() {
 }
 
 check_health() {
-    check_data && check_ui && check_sht30 && check_bh1750
+    check_data && check_telemetry && check_ota && check_ui
 }
 
 ustate=$("${FW_PRINTENV}" -n ustate 2>/dev/null || echo "0")
