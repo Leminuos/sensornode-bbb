@@ -29,6 +29,7 @@ WKS_FILE = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-ota', \
     'bbb-sensornode-ab.wks.in', 'bbb-sensornode-single.wks.in', d)}"
 
 IMAGE_ROOTFS_MAXSIZE = "${SENSORNODE_SLOT_SIZE_KiB}"
+IMAGE_OVERHEAD_FACTOR = "1.2"
 
 write_ota_metadata() {
     install -d ${IMAGE_ROOTFS}${sysconfdir}

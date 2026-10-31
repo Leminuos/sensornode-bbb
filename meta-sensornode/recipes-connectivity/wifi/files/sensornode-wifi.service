@@ -1,0 +1,14 @@
+[Unit]
+Description=WiFi client on wlan0
+BindsTo=sys-subsystem-net-devices-wlan0.device
+After=sys-subsystem-net-devices-wlan0.device
+RequiresMountsFor=/data
+ConditionPathExists=/data/config/wpa_supplicant-wlan0.conf
+
+[Service]
+ExecStart=/usr/sbin/wpa_supplicant -Dnl80211 -iwlan0 -c/data/config/wpa_supplicant-wlan0.conf
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=sys-subsystem-net-devices-wlan0.device
