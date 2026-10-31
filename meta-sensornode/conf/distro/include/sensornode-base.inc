@@ -34,6 +34,10 @@ PACKAGECONFIG_DISTRO:pn-qtbase = " \
 TOOLCHAIN_TARGET_TASK:append = " \
     libgpiod-dev \
     mosquitto-dev \
+    nlohmann-json-dev \
+    libsqlite3-dev \
+    libubootenv-dev \
+    swupdate-dev \
 "
 
 VIRTUAL-RUNTIME_init_manager = "systemd"

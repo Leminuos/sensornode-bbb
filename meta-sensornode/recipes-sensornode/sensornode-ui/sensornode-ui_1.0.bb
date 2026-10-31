@@ -10,11 +10,11 @@ SRCREV = "8a129268dad2e70edb3c036010adac7a4d46aab5"
 PV = "1.0+git${SRCPV}"
 S = "${WORKDIR}/git"
 
-inherit cmake_qt5 systemd
+inherit cmake_qt5 pkgconfig systemd
 
-DEPENDS += "qtbase qtcharts mosquitto"
+DEPENDS += "qtbase qtcharts sqlite3"
 
-RDEPENDS:${PN} = "qtbase-plugins tslib-conf ttf-dejavu-sans"
+RDEPENDS:${PN} = "qtbase-plugins tslib-conf ttf-dejavu-sans sensornode-core"
 
 EXTRA_OECMAKE += "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-debug', '-DPRODUCTION_BUILD=OFF', '-DPRODUCTION_BUILD=ON', d)}"
 

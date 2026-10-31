@@ -23,7 +23,7 @@ ROOTFS_POSTPROCESS_COMMAND += "create_data_mountpoint; "
 # sensornode-ota
 # ---------------------------------------------------------------------------
 IMAGE_INSTALL:append = " ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-ota', \
-    'swupdate swupdate-www libubootenv-bin ota-confirm-boot', '', d)}"
+    'swupdate swupdate-www libubootenv-bin ota-confirm-boot sensornode-core-otad', '', d)}"
 
 WKS_FILE = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-ota', \
     'bbb-sensornode-ab.wks.in', 'bbb-sensornode-single.wks.in', d)}"

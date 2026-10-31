@@ -6,6 +6,8 @@ require include/sensornode-image-common.inc
 IMAGE_INSTALL:append = " \
     libgpiod-tools libgpiod \
     bbb-static-ip \
+    libsqlite3 \
+    sensornode-core \
 "
 
 IMAGE_INSTALL:append = " ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-hmi', \
