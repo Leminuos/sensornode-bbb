@@ -279,6 +279,7 @@ Cần re-flash `u-boot-env.raw` từ build host:
 
 ```bash
 sudo dd if=u-boot-env.raw of=/dev/sdX seek=$((0x260000 / 512)) bs=512   # offset = SENSORNODE_ENV_OFFSET
+sudo dd if=u-boot-env.raw of=/dev/sdX seek=$((0x280000 / 512)) bs=512   # offset = SENSORNODE_ENV_OFFSET_REDUND
 ```
 
 (với SD đã rút ra cắm vào host).

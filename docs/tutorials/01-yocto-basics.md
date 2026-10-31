@@ -207,7 +207,7 @@ Nghĩa là: `do_deploy` chạy sau khi `mke2fs` tạo xong ext4 ở `do_compile`
 
 ```bitbake
 do_compile:append() {
-    mkenvimage -s ${SENSORNODE_ENV_SIZE} -o ${B}/u-boot-env.raw ${B}/u-boot-initial-env
+    mkenvimage -r -s ${SENSORNODE_ENV_SIZE} -o ${B}/u-boot-env.raw ${B}/u-boot-initial-env
 }
 ```
 

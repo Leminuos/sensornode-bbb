@@ -7,6 +7,7 @@ Bản production mount rootfs ở chế độ chỉ đọc. Tutorial này giải
 - Lợi ích và cái giá của rootfs chỉ đọc.
 - Hai nơi quyết định `/` là `ro` hay `rw`: kernel command line và `/etc/fstab`.
 - Image feature `read-only-rootfs` sửa rootfs lúc build như thế nào.
+- Overlay `/etc` trên `/data` để `/etc` ghi được.
 - Ba cơ chế cho dữ liệu cần ghi: tmpfs, volatile bind, phân vùng `/data`.
 - Cách tìm chương trình đang cố ghi vào rootfs.
 
@@ -46,8 +47,10 @@ Distro production bật `sensornode-readonly`, image dịch sang image feature c
 
 ```bitbake
 IMAGE_FEATURES:append = " ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-readonly', \
-    'read-only-rootfs', '', d)}"
+    'read-only-rootfs overlayfs-etc', '', d)}"
 ```
+
+`overlayfs-etc` cho phép ghi vào `/etc`.
 
 ## 4. `read-only-rootfs` làm gì lúc build
 
@@ -58,12 +61,6 @@ Khi image có feature này, poky chạy hàm `read_only_rootfs_hook` (trong `pok
 | Sửa fstab | Đổi dòng của `/` từ `defaults` sang `ro`, cột fsck-pass đổi thành `0` |
 | SSH host key | Mỗi máy cần bộ khóa SSH riêng, bình thường được tạo và lưu vào `/etc/ssh`. Vì `/etc` đã khóa, nên nó cấu hình sshd tạo key trong RAM (`/var/run/ssh`). Hệ quả: key đổi mỗi lần boot. Nếu muốn khóa cố định thì lưu sang `/data`. **Bản production không có SSH nên không áp dụng** |
 
-Cả hai distro đều có file `/etc/machine-id` rỗng. Khác biệt nằm lúc chạy:
-
-- Dev (`rw`): lần boot đầu systemd sinh machine-id và ghi luôn vào `/etc/machine-id` và cố định từ đó.
-- Production (`ro`): systemd không ghi được nên sinh  machine-id tạm thời mới mỗi lần boot.
-
-> [!NOTE]
-> Hệ quả: journald lưu theo thư mục `/data/journal/<machine-id>/` nên bản production tạo thư mục mới sau mỗi lần boot và `/data/journal/` có nhiều thư mục con. Nếu `journalctl -b -1` không thấy log lần boot trước, đọc từ mọi thư mục bằng `journalctl -m` hoặc `journalctl -D /data/journal/<id>`. Muốn `machine-id` cố định cho bản production thì phải lưu nó trên `/data` hoặc sinh lúc sản xuất.
+Cả hai distro đều có file `/etc/machine-id` rỗng. Lần boot đầu, systemd sinh machine-id rồi ghi vào `/etc/machine-id` và giá trị này cố định từ đó. Bản dev ghi được vì rootfs là `rw`. Bản production ghi được nhờ overlay `/etc`. Nếu không có overlay, systemd sẽ sinh một machine-id tạm mới mỗi lần boot, và journald tạo thêm một thư mục `/data/journal/<machine-id>/` cho mỗi lần boot.
 
 Ngoài ra, `read_only_rootfs_hook` có thêm `APPEND:append = " ro"` để nối `ro` vào kernel cmdline. Nhưng trong dự án, kernel cmdline không lấy từ biến `APPEND` mà nó được script `ota_boot` tự setenv bootargs trong U-Boot env. Nên `APPEND:append` không tới được cmdline thật.

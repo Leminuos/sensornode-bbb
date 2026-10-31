@@ -7,11 +7,11 @@ Bảng tra các biến U-Boot env dùng cho cơ chế A/B.
 | Thuộc tính | Giá trị |
 |---|---|
 | Thiết bị | `mmcblk0`, raw |
-| Offset | `0x260000` |
+| Offset | `0x260000` (bản chính), `0x280000` (bản backup) |
 | Kích thước | `0x20000` |
-| Redundant | Không |
+| Redundant | Có — hai bản, mỗi lần `saveenv`/`fw_setenv` ghi vào bản cũ hơn rồi đổi cờ, mất điện giữa chừng vẫn còn bản kia |
 
-Offset/size định nghĩa ở `SENSORNODE_ENV_OFFSET` / `SENSORNODE_ENV_SIZE` trong [sensornode-vars.inc](../../meta-sensornode/conf/include/sensornode-vars.inc).
+Offset/size định nghĩa ở `SENSORNODE_ENV_OFFSET` / `SENSORNODE_ENV_SIZE` trong [sensornode-vars.inc](../../meta-sensornode/conf/include/sensornode-vars.inc). Offset bản backup `SENSORNODE_ENV_OFFSET_REDUND` = offset + size, tự tính, không khai tay.
 
 ## Biến trạng thái
 
@@ -49,4 +49,13 @@ Offset/size định nghĩa ở `SENSORNODE_ENV_OFFSET` / `SENSORNODE_ENV_SIZE` t
 | `fw_printenv active_slot ustate boot_count boot_limit` | Đọc trạng thái |
 | `fw_setenv ustate 0` | Sửa thủ công |
 
-Env không được ký — ai ghi được SD card hoặc chạy `fw_setenv` đều sửa được `bootargs` và script boot.
+## Biến được nạp từ thẻ
+
+Env không được ký — ai ghi được SD card hoặc chạy `fw_setenv` đều sửa được nội dung env trên thẻ. Mức ảnh hưởng tuỳ distro feature:
+
+| Build | U-Boot nạp gì từ env trên thẻ |
+|---|---|
+| Không có `sensornode-secureboot` | Toàn bộ — sửa được `bootargs`, `bootcmd`, script boot |
+| Có `sensornode-secureboot` | Chỉ `active_slot`, `ustate`, `boot_count`; mọi biến khác lấy từ env mặc định build trong `u-boot.img` |
+
+Với `sensornode-secureboot`, U-Boot nạp env mặc định trước (driver `nowhere`), rồi env trên MMC chỉ ghi đè các biến có cờ `w` trong `CONFIG_ENV_FLAGS_LIST_STATIC` (`CONFIG_ENV_APPEND` + `CONFIG_ENV_WRITEABLE_LIST`). `saveenv` vẫn ghi toàn bộ env xuống MMC. Hệ quả: `fw_setenv` một biến ngoài danh sách (vd `bootdelay`, `bootargs`) vẫn ghi được xuống thẻ và `fw_printenv` vẫn thấy, nhưng U-Boot bỏ qua. Muốn thêm biến trạng thái mới phải thêm vào danh sách trong `0002-bbb-env-writeable-list.patch`.

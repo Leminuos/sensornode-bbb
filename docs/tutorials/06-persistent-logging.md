@@ -19,6 +19,8 @@ systemd-journald ghi log vào một trong hai nơi:
 | Runtime (volatile) | `/run/log/journal/` | tmpfs trong RAM, mất khi tắt nguồn |
 | Persistent | `/var/log/journal/` | Chỉ dùng khi thư mục này tồn tại và ghi được |
 
+Trên image của dự án, `/var/log` là symlink trỏ tới `/var/volatile/log` mà `/var/volatile` là tmpfs khai trong `/etc/fstab`. Nghĩa là mặc định **cả hai nơi đều nằm trong RAM**. Log chỉ lưu lại được qua reboot khi `/var/log/journal` trỏ sang `/data/journal`.
+
 Rootfs không phải chỗ để ghi: bản production mount chỉ đọc và ghi vào slot đang chạy sẽ phá tính tái lập của mô hình A/B. Nơi duy nhất ghi được lâu dài là `/data`.
 
 Dự án dùng luôn journald thay vì viết cơ chế log riêng trong ứng dụng: journald đã có sẵn phân loại theo mức ưu tiên, theo unit, theo lần boot, có rotate và có công cụ đọc (`journalctl`).
@@ -35,17 +37,12 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 SRC_URI = " \
     file://10-persistent.conf \
     file://journald-data.conf \
-    file://journald-data-flush.service \
+    file://10-journal-on-data.conf \
 "
 
 S = "${WORKDIR}"
 
-inherit systemd
-
 RDEPENDS:${PN} = "systemd"
-
-SYSTEMD_SERVICE:${PN} = "journald-data-flush.service"
-SYSTEMD_AUTO_ENABLE:${PN} = "enable"
 
 do_install() {
     install -d ${D}${sysconfdir}/systemd/journald.conf.d
@@ -56,15 +53,15 @@ do_install() {
     install -m 0644 ${WORKDIR}/journald-data.conf \
         ${D}${sysconfdir}/tmpfiles.d/journald-data.conf
 
-    install -d ${D}${systemd_system_unitdir}
-    install -m 0644 ${WORKDIR}/journald-data-flush.service \
-        ${D}${systemd_system_unitdir}/journald-data-flush.service
+    install -d ${D}${systemd_system_unitdir}/systemd-journal-flush.service.d
+    install -m 0644 ${WORKDIR}/10-journal-on-data.conf \
+        ${D}${systemd_system_unitdir}/systemd-journal-flush.service.d/10-journal-on-data.conf
 }
 
 FILES:${PN} = " \
     ${sysconfdir}/systemd/journald.conf.d/10-persistent.conf \
     ${sysconfdir}/tmpfiles.d/journald-data.conf \
-    ${systemd_system_unitdir}/journald-data-flush.service \
+    ${systemd_system_unitdir}/systemd-journal-flush.service.d/10-journal-on-data.conf \
 "
 ```
 
@@ -74,7 +71,7 @@ FILES:${PN} = " \
 |---|---|---|
 | `10-persistent.conf` | `/etc/systemd/journald.conf.d/` | Bảo journald ghi persistent và giới hạn dung lượng |
 | `journald-data.conf` | `/etc/tmpfiles.d/` | Tạo `/data/journal` với quyền đúng |
-| `journald-data-flush.service` | `/lib/systemd/system/` | Trỏ `/var/log/journal` sang `/data/journal` đúng thời điểm rồi chuyển log sang đó |
+| `10-journal-on-data.conf` | `/lib/systemd/system/systemd-journal-flush.service.d/` | Drop-in cho unit chuẩn `systemd-journal-flush.service`: trỏ `/var/log/journal` sang `/data/journal` trước khi unit đó chuyển log sang persistent |
 
 Dùng thư mục `journald.conf.d/` thay vì sửa thẳng `/etc/systemd/journald.conf`: cấu hình của dự án tách riêng, không xung đột khi nâng cấp systemd. Tiền tố `10-` quyết định thứ tự đọc khi có nhiều file.
 
@@ -123,54 +120,44 @@ d /data/journal 2755 root systemd-journal -
 
 `systemd-tmpfiles` đọc các file trong `/etc/tmpfiles.d/` lúc boot. Thư mục `/data/journal` cũng đã được tạo sẵn trong filesystem lúc build nên rule này chủ yếu bảo đảm quyền đúng và xử lý trường hợp thư mục bị xoá.
 
-## 5. Vấn đề thứ tự lúc boot và service `journald-data-flush`
+## 5. Vấn đề thứ tự lúc boot và drop-in cho `systemd-journal-flush`
 
 ### 5.1. Vì sao `Storage=persistent` là chưa đủ
 
-Chuỗi sự kiện lúc boot:
+Unit chuẩn `systemd-journal-flush.service` chạy rất sớm trong `sysinit.target`, có nhiệm vụ chuyển log từ `/run` sang `/var/log/journal`. Nếu lúc đó `/var/log/journal` chưa tồn tại thì journald tiếp tục ghi vào RAM cho đến hết phiên và không tự chuyển lại sau đó.
 
-1. systemd khởi động journald và log ban đầu ghi vào `/run/log/journal` (RAM).
-2. `systemd-journal-flush.service` chạy rất sớm. Nó có nhiệm vụ chuyển log từ `/run` sang `/var/log/journal`. Nhưng lúc này `/data` chưa được mount và `/var/log/journal` chưa trỏ đi đâu cả.
-3. Không có thư mục persistent, journald tiếp tục ghi vào RAM cho đến hết phiên và không tự chuyển lại sau đó.
-4. `/data` mount ở bước sau, nhưng đã muộn.
+`/var/log` nằm trên tmpfs nên symlink `/var/log/journal → /data/journal` không thể tạo sẵn lúc build: mỗi lần boot tmpfs lại rỗng. Symlink phải được tạo lúc boot, sau khi `/data` và `/var/volatile` đã mount và trước khi flush.
 
-Thêm nữa, `/var/log` nằm trên tmpfs nên symlink `/var/log/journal → /data/journal` không thể tạo sẵn lúc build: mỗi lần boot tmpfs lại rỗng.
+Dòng `RequiresMountsFor=/var/log/journal` có sẵn trong unit chuẩn không đủ để bảo đảm thứ tự này vì systemd không đi theo symlink `/var/log` khi tính phụ thuộc mount nên không kéo theo `var-volatile.mount`.
 
-### 5.2. Service xử lý
+### 5.2. Drop-in xử lý
 
 ```ini
 [Unit]
-Description=Redirect and flush systemd journal to /data
-After=data.mount
-Requires=data.mount
+RequiresMountsFor=/data /var/volatile/log
 
 [Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/bin/mkdir -p /data/journal
-ExecStart=/bin/ln -sfn /data/journal /var/log/journal
-ExecStart=/bin/journalctl --flush
-
-[Install]
-WantedBy=multi-user.target
+ExecStartPre=/bin/mkdir -p /data/journal /var/volatile/log
+ExecStartPre=/bin/ln -sfn /data/journal /var/log/journal
 ```
 
 | Dòng | Ý nghĩa |
 |---|---|
-| `After=data.mount` | Chỉ chạy sau khi `/data` đã mount |
-| `Requires=data.mount` | Mount thất bại thì service không chạy, tránh tạo symlink trỏ vào thư mục rỗng trên rootfs |
-| `Type=oneshot` + `RemainAfterExit=yes` | Chạy một lần rồi kết thúc nhưng systemd vẫn coi là active để các unit khác phụ thuộc được |
-| `mkdir -p /data/journal` | Phòng trường hợp thư mục bị xoá |
+| `RequiresMountsFor=/data /var/volatile/log` | Kéo theo và chạy sau `data.mount` và `var-volatile.mount`. Khai đường dẫn thật, không qua symlink |
+| `mkdir -p /data/journal /var/volatile/log` | Phòng trường hợp thư mục chưa có |
 | `ln -sfn /data/journal /var/log/journal` | Tạo lại symlink trên tmpfs |
-| `journalctl --flush` | Yêu cầu journald chuyển toàn bộ log đang ở `/run` sang persistent và ghi tiếp vào đó |
 
-Thứ tự ba lệnh `ExecStart` là quan trọng: có thư mục → có symlink → mới yêu cầu flush.
+Sau hai `ExecStartPre`, dòng `ExecStart=journalctl --flush` có sẵn của unit chuẩn chuyển log sang `/data`. Unit chuẩn cũng có `ExecStop=journalctl --smart-relinquish-var`, nên lúc shutdown journald thôi ghi vào `/data` trước khi `/data` bị unmount.
+
+Drop-in được đặt trong `/lib` thay vì `/etc` để không bị lớp overlay `/etc` trên `/data` che mất sau OTA.
+
+Trên bản production, `/data` đã được preinit mount trước systemd. Trên bản dev, `data.mount` mount trước `local-fs.target`. Trong cả hai trường hợp, log được chuyển sang `/data` ngay trong `sysinit.target`.
 
 ## 6. Kiểm tra trên board
 
 ```bash
 # Service đã chạy chưa
-systemctl status journald-data-flush
+systemctl status systemd-journal-flush
 
 # Symlink đã trỏ đúng chưa
 ls -l /var/log/journal
@@ -184,7 +171,7 @@ ls /data/journal/
 ls /run/log/journal/ 2>/dev/null
 ```
 
-Kiểm tra tính persisstent: ghi một dấu mốc, reboot, rồi tìm lại:
+Kiểm tra tính persistent: ghi một dấu mốc, reboot, rồi tìm lại:
 
 ```bash
 logger -p warning "MOC-KIEM-TRA-PERSISTENT"

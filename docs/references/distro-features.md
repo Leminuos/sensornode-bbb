@@ -31,7 +31,7 @@ Mỗi distro có `TMPDIR = ${TOPDIR}/tmp-${DISTRO}` nên artifact nằm ở `tmp
 |---|---|
 | `sensornode-hmi` | Qt HMI trên màn TFT SPI + touch |
 | `sensornode-ota` | SWUpdate, layout A/B, U-Boot A/B env, verify boot + rollback |
-| `sensornode-secureboot` | U-Boot verified boot + `.swu` ký CMS |
+| `sensornode-secureboot` | U-Boot verified boot + `.swu` ký CMS + U-Boot chỉ nhận `active_slot`/`ustate`/`boot_count` từ env trên thẻ |
 | `sensornode-readonly` | Rootfs mount read-only |
 | `sensornode-devtools` | Dev tools (`i2c-tools`, `evtest`, `strace`, `tslib-calibrate`...) |
 | `sensornode-login` | Login access (`debug-tweaks`, `ssh-server-openssh`) |

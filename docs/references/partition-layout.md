@@ -9,6 +9,7 @@ Bảng tra layout SD card và nội dung partition `/data`.
 | `MLO` | `0x20000` | — | raw | — |
 | `u-boot.img` | `0x60000` | — | raw | — |
 | U-Boot env | `0x260000` | `0x20000` | raw | — |
+| U-Boot env (backup) | `0x280000` | `0x20000` | raw | — |
 | `mmcblk0p1` rootA | 4 MiB | 160 MiB | ext4 | `/` khi `active_slot=A` |
 | `mmcblk0p2` rootB | 164 MiB | 160 MiB | ext4 | `/` khi `active_slot=B` |
 | `mmcblk0p3` data | 324 MiB | 128 MiB | ext4 | `/data` |
@@ -48,11 +49,11 @@ File không có rotation, tăng không giới hạn.
 | `SystemMaxFiles` | `5` |
 | `MaxRetentionSec` | `1month` |
 
-`/var/log/journal` là symlink tới `/data/journal`, tạo bởi `journald-data-flush.service` sau khi `/data` mount.
+`/var/log/journal` là symlink tới `/data/journal`, tạo bởi drop-in của `systemd-journal-flush.service` sau khi `/data` mount.
 
 ## Lưu ý khi sửa layout
 
-- Offset/size env, kích thước slot, kích thước `/data`, device của slot A/B và tên file ext4 của `/data` chỉ định nghĩa ở [sensornode-vars.inc](../../meta-sensornode/conf/include/sensornode-vars.inc).
+- Offset/size env (offset bản backup tự tính = offset + size), kích thước slot, kích thước `/data`, device của slot A/B và tên file ext4 của `/data` chỉ định nghĩa ở [sensornode-vars.inc](../../meta-sensornode/conf/include/sensornode-vars.inc).
 - Script `ota_pick_slot` trong built-in env của U-Boot map `active_slot` → `mmc_part` (A=1, B=2) và dựng `root=/dev/mmcblk0p${mmc_part}`. Nếu đổi `SENSORNODE_SLOT_A_DEV` / `SENSORNODE_SLOT_B_DEV` phải sửa cả patch U-Boot.
 - Rootfs ext4 bị giới hạn bởi `IMAGE_ROOTFS_MAXSIZE` = kích thước slot: image vượt quá slot sẽ fail lúc build thay vì fail khi SWUpdate ghi raw.
 - Dòng `/data` trong wks phải giữ `--fstype=ext4` và không dùng `--label` với `--source rawcopy`.
