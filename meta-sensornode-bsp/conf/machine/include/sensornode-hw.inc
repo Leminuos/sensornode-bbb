@@ -1,7 +1,7 @@
 #
 # SensorNode peripherals attached to the BBB:
 #   - ILI9341 240x320 TFT on SPI1 (tinydrm) + resistive touch
-#   - SHT30 and BH1750 on I2C1
+#   - SHT30, BH1750 and DS3231 RTC on I2C1
 #   - PWM backlight
 #
 

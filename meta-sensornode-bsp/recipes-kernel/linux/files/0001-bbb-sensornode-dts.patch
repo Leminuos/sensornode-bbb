@@ -2,7 +2,7 @@ diff --git a/arch/arm/boot/dts/am335x-boneblack.dts b/arch/arm/boot/dts/am335x-b
 index db1bf9452e57..e613ff47cb07 100644
 --- a/arch/arm/boot/dts/am335x-boneblack.dts
 +++ b/arch/arm/boot/dts/am335x-boneblack.dts
-@@ -168,3 +168,116 @@ &gpio3 {
+@@ -168,3 +168,128 @@ &gpio3 {
  		"NC",
  		"NC";
  };
@@ -57,10 +57,22 @@ index db1bf9452e57..e613ff47cb07 100644
 +	status = "disabled";
 +};
 +
++/ {
++	aliases {
++		rtc0 = &ds3231;
++		rtc1 = &rtc;
++	};
++};
++
 +&i2c1 {
 +	pinctrl-names = "default";
 +	pinctrl-0 = <&i2c1_pins>;
 +	status = "okay";
++
++	ds3231: rtc@68 {
++		compatible = "maxim,ds3231";
++		reg = <0x68>;
++	};
 +};
 +
 +&spi1 {
