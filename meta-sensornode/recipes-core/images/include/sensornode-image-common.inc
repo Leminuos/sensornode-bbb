@@ -31,6 +31,20 @@ WKS_FILE = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-ota', \
 IMAGE_ROOTFS_MAXSIZE = "${SENSORNODE_SLOT_SIZE_KiB}"
 IMAGE_OVERHEAD_FACTOR = "1.2"
 
+python check_slot_usage() {
+    slot_kib = int(d.getVar('SENSORNODE_SLOT_SIZE_KiB'))
+    warn_pct = int(d.getVar('SENSORNODE_SLOT_WARN_PERCENT'))
+    used_kib = get_rootfs_size(d)
+    used_pct = used_kib * 100 / slot_kib
+
+    msg = "Slot usage: %.1f/%.1f MiB (%.1f%%)" % (used_kib / 1024, slot_kib / 1024, used_pct)
+    if used_pct >= warn_pct:
+        bb.warn("%s, over %d%% limit" % (msg, warn_pct))
+    else:
+        bb.plain(msg)
+}
+IMAGE_PREPROCESS_COMMAND:append = " check_slot_usage; "
+
 write_ota_metadata() {
     install -d ${IMAGE_ROOTFS}${sysconfdir}
     echo "${OTA_BOARD_NAME} ${OTA_HW_REVISION}" > ${IMAGE_ROOTFS}${sysconfdir}/hwrevision
