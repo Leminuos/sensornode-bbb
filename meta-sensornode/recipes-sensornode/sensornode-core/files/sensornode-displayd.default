@@ -1,0 +1,4 @@
+# Tham số dòng lệnh cho sensornode-displayd
+DISPLAYD_ARGS=""
+
+#SENSORNODE_LOG_LEVEL=debug

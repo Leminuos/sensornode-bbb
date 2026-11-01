@@ -1,0 +1,4 @@
+# Tham số dòng lệnh cho sensornode-settingsd
+SETTINGSD_ARGS="--settings /data/settings/settings.json"
+
+#SENSORNODE_LOG_LEVEL=debug

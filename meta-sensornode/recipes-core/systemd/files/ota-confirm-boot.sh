@@ -11,6 +11,8 @@ HEALTH_POLL_SEC=5
 UI_UNIT="sensornode-ui.service"
 TELEMETRY_UNIT="sensornode-telemetryd.service"
 OTA_UNIT="sensornode-otad.service"
+SETTINGS_UNIT="sensornode-settingsd.service"
+DISPLAY_UNIT="sensornode-displayd.service"
 STABLE_SEC=30
 
 DATA_DIR="/data"
@@ -42,9 +44,21 @@ check_unit() {
     fi
 }
 
-check_ui() {
+# UI và displayd chỉ có trong image bật sensornode-hmi.
+check_hmi() {
     load_state=$(systemctl show -p LoadState --value "${UI_UNIT}")
     [ "${load_state}" = "loaded" ] || return 0
+
+    check_unit "${DISPLAY_UNIT}" || return 1
+
+    status=$(systemctl show -p StatusText --value "${DISPLAY_UNIT}")
+    case "${status}" in
+        *backlight=ok*) ;;
+        *)
+            reason="${DISPLAY_UNIT} backlight not ok: ${status}"
+            return 1
+            ;;
+    esac
 
     check_unit "${UI_UNIT}"
 }
@@ -88,7 +102,7 @@ check_data() {
 }
 
 check_health() {
-    check_data && check_telemetry && check_ota && check_ui
+    check_data && check_unit "${SETTINGS_UNIT}" && check_telemetry && check_ota && check_hmi
 }
 
 ustate=$("${FW_PRINTENV}" -n ustate 2>/dev/null || echo "0")

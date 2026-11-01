@@ -1,6 +1,6 @@
 [Unit]
 Description=OTA Boot Confirmation
-After=local-fs.target sensornode-telemetryd.service sensornode-otad.service sensornode-ui.service
+After=local-fs.target sensornode-telemetryd.service sensornode-otad.service sensornode-settingsd.service sensornode-displayd.service sensornode-ui.service
 ConditionPathExists=/usr/bin/fw_setenv
 
 [Service]

@@ -8,6 +8,7 @@ IMAGE_INSTALL:append = " \
     bbb-static-ip \
     libsqlite3 \
     sensornode-core \
+    sensornode-core-settingsd \
 "
 
 IMAGE_INSTALL:append = " ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-hmi', \
