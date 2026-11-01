@@ -4,6 +4,10 @@ SRC_URI:append = " \
     file://0001-bbb-ota.cfg \
     file://0001-bbb-ota-boot-env.patch \
     ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-secureboot', 'file://env-writeable-list.cfg file://0002-bbb-env-writeable-list.patch', '', d)} \
+    file://0003-bbb-boot-splash.patch \
+    file://sensornode-splash.bmp \
+    file://splash-bmp2h.py \
+    ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-hmi', 'file://splash.cfg', '', d)} \
 "
 
 SENSORNODE_UBOOT_ENV_LOCK_CFG = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-secureboot', 'CONFIG_ENV_IS_NOWHERE=y CONFIG_ENV_APPEND=y CONFIG_ENV_WRITEABLE_LIST=y', '', d)}"
@@ -11,6 +15,10 @@ SENSORNODE_UBOOT_ENV_LOCK_CFG = "${@bb.utils.contains('DISTRO_FEATURES', 'sensor
 # u-boot-tools-native cung cấp mkenvimage để build u-boot-env.raw.
 # u-boot-env.raw ở định dạng redundant (-r), ghi giống nhau lên cả hai vùng env.
 DEPENDS:append = " u-boot-tools-native"
+
+do_configure:prepend() {
+    python3 ${WORKDIR}/splash-bmp2h.py ${WORKDIR}/sensornode-splash.bmp ${S}/board/ti/am335x/splash_image.h
+}
 
 do_configure:append() {
     printf 'CONFIG_ENV_OFFSET=%s\nCONFIG_ENV_SIZE=%s\nCONFIG_SYS_REDUNDAND_ENVIRONMENT=y\nCONFIG_ENV_OFFSET_REDUND=%s\n' \

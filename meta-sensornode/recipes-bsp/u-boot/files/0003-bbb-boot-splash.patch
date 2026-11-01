@@ -1,0 +1,295 @@
+From: sensornode <noreply@local>
+Subject: am335x_evm: show a boot splash on the ILI9341 panel
+diff --git a/board/ti/am335x/Kconfig b/board/ti/am335x/Kconfig
+index b66ca1a..eaa9c45 100644
+--- a/board/ti/am335x/Kconfig
++++ b/board/ti/am335x/Kconfig
+@@ -19,6 +19,9 @@ config NOR
+ 	  In practice this is seen as a NOR flash module connected to the
+ 	  "memory cape" for the BeagleBone family.
+ 
++config SENSORNODE_SPLASH
++	bool "Boot splash on the SensorNode ILI9341 panel"
++
+ source "board/ti/common/Kconfig"
+ 
+ endif
+diff --git a/board/ti/am335x/Makefile b/board/ti/am335x/Makefile
+index 3ccf66b..f85886d 100644
+--- a/board/ti/am335x/Makefile
++++ b/board/ti/am335x/Makefile
+@@ -9,3 +9,7 @@ obj-y	:= mux.o
+ endif
+ 
+ obj-y	+= board.o
++
++ifndef CONFIG_SPL_BUILD
++obj-$(CONFIG_SENSORNODE_SPLASH) += splash.o
++endif
+diff --git a/board/ti/am335x/board.c b/board/ti/am335x/board.c
+index e8555de..198db93 100644
+--- a/board/ti/am335x/board.c
++++ b/board/ti/am335x/board.c
+@@ -821,6 +821,10 @@ int board_late_init(void)
+ 		env_set("boot_fit", "1");
+ #endif
+ 
++#ifdef CONFIG_SENSORNODE_SPLASH
++	sensornode_splash();
++#endif
++
+ #if !defined(CONFIG_SPL_BUILD)
+ 	/* try reading mac address from efuse */
+ 	mac_lo = readl(&cdev->macid0l);
+diff --git a/board/ti/am335x/board.h b/board/ti/am335x/board.h
+index c296211..4a3c0e9 100644
+--- a/board/ti/am335x/board.h
++++ b/board/ti/am335x/board.h
+@@ -95,4 +95,5 @@ void enable_uart5_pin_mux(void);
+ void enable_i2c0_pin_mux(void);
+ void enable_i2c2_pin_mux(void);
+ void enable_board_pin_mux(void);
++void sensornode_splash(void);
+ #endif
+diff --git a/board/ti/am335x/splash.c b/board/ti/am335x/splash.c
+new file mode 100644
+index 0000000..facad6b
+--- /dev/null
++++ b/board/ti/am335x/splash.c
+@@ -0,0 +1,236 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Boot splash on the ILI9341 panel, wired as in the kernel devicetree:
++ * McSPI1 CS0, DC on gpio3_19, RESET on gpio3_21, backlight on gpio1_18.
++ * Registers are driven directly because U-Boot's DT has no spi1 node.
++ */
++
++#include <common.h>
++#include <linux/delay.h>
++#include <linux/errno.h>
++#include <asm/io.h>
++#include <asm/arch/hardware.h>
++#include <asm/arch/mux.h>
++#include "../common/board_detect.h"
++#include "board.h"
++#include "splash_image.h"
++
++#define SPI1_BASE		0x481A0000
++#define SPI_SYSCONFIG		(SPI1_BASE + 0x110)
++#define SPI_SYSSTATUS		(SPI1_BASE + 0x114)
++#define SPI_MODULCTRL		(SPI1_BASE + 0x128)
++#define SPI_CH0CONF		(SPI1_BASE + 0x12C)
++#define SPI_CH0STAT		(SPI1_BASE + 0x130)
++#define SPI_CH0CTRL		(SPI1_BASE + 0x134)
++#define SPI_TX0			(SPI1_BASE + 0x138)
++
++#define SYSCONFIG_SOFTRESET	BIT(1)
++#define SYSSTATUS_RESETDONE	BIT(0)
++#define MODULCTRL_SINGLE	BIT(0)
++#define CH0CONF_CLKD_24MHZ	(1 << 2)
++#define CH0CONF_EPOL		BIT(6)
++#define CH0CONF_WL_8BIT		(7 << 7)
++#define CH0CONF_TRM_TX_ONLY	BIT(13)
++#define CH0CONF_DPE0		BIT(16)
++#define CH0CONF_FORCE		BIT(20)
++#define CH0STAT_TXS		BIT(1)
++#define CH0STAT_EOT		BIT(2)
++#define CH0CTRL_EN		BIT(0)
++
++#define GPIO1_REG		0x4804C000
++#define GPIO3_REG		0x481AE000
++#define GPIO_OE			0x134
++#define GPIO_CLEARDATAOUT	0x190
++#define GPIO_SETDATAOUT		0x194
++
++#define PIN_BACKLIGHT		BIT(18)
++#define PIN_DC			BIT(19)
++#define PIN_RESET		BIT(21)
++
++#define CM_PER_SPI1_CLKCTRL	(CM_PER + 0x50)
++#define CM_PER_GPIO1_CLKCTRL	(CM_PER + 0xAC)
++#define CM_PER_GPIO3_CLKCTRL	(CM_PER + 0xB4)
++#define CLKCTRL_MODULE_EN	2
++#define CLKCTRL_IDLEST_MASK	(3 << 16)
++
++#define SPLASH_TIMEOUT_LOOPS	1000000
++
++#define CMD_SLEEP_OUT		0x11
++#define CMD_DISPLAY_ON		0x29
++#define CMD_DISPLAY_OFF		0x28
++#define CMD_COLUMN_ADDR		0x2A
++#define CMD_PAGE_ADDR		0x2B
++#define CMD_MEMORY_WRITE	0x2C
++#define CMD_ADDRESS_MODE	0x36
++
++#define ADDRESS_MODE_MY_BGR	0x88
++
++static struct module_pin_mux splash_pin_mux[] = {
++	{OFFSET(mcasp0_aclkx), MODE(3) | PULLUP_EN | RXACTIVE},		/* SPI1_SCLK */
++	{OFFSET(mcasp0_fsx), MODE(3) | PULLUP_EN | RXACTIVE},		/* SPI1_D0 */
++	{OFFSET(mcasp0_axr0), MODE(3) | PULLDOWN_EN},			/* SPI1_D1 */
++	{OFFSET(mcasp0_ahclkr), MODE(3) | PULLUP_EN},			/* SPI1_CS0 */
++	{OFFSET(mcasp0_fsr), MODE(7) | PULLUP_EN},			/* DC */
++	{OFFSET(mcasp0_ahclkx), MODE(7) | PULLUP_EN},			/* RESET */
++	{OFFSET(gpmc_a2), MODE(7) | PULLUDDIS},				/* BACKLIGHT */
++	{-1},
++};
++
++/* Same values as yx240qv29_enable() in the kernel: cmd, length, params. */
++static const u8 panel_init[] = {
++	CMD_DISPLAY_OFF, 0,
++	0xCF, 3, 0x00, 0xC1, 0x30,
++	0xED, 4, 0x64, 0x03, 0x12, 0x81,
++	0xE8, 3, 0x85, 0x00, 0x78,
++	0xCB, 5, 0x39, 0x2C, 0x00, 0x34, 0x02,
++	0xF7, 1, 0x20,
++	0xEA, 2, 0x00, 0x00,
++	0xC0, 1, 0x23,
++	0xC1, 1, 0x10,
++	0xC5, 2, 0x3E, 0x28,
++	0xC7, 1, 0x86,
++	0x3A, 1, 0x55,
++	0xB1, 2, 0x00, 0x1B,
++	0xF2, 1, 0x00,
++	0x26, 1, 0x01,
++	0xE0, 15, 0x0F, 0x31, 0x2B, 0x0C, 0x0E, 0x08, 0x4E, 0xF1,
++		  0x37, 0x07, 0x10, 0x03, 0x0E, 0x09, 0x00,
++	0xE1, 15, 0x00, 0x0E, 0x14, 0x03, 0x11, 0x07, 0x31, 0xC1,
++		  0x48, 0x08, 0x0F, 0x0C, 0x31, 0x36, 0x0F,
++	0xB7, 1, 0x07,
++	0xB6, 4, 0x08, 0x82, 0x27, 0x00,
++};
++
++static int wait_bits(u32 reg, u32 mask, u32 value)
++{
++	int i;
++
++	for (i = 0; i < SPLASH_TIMEOUT_LOOPS; i++) {
++		if ((readl(reg) & mask) == value)
++			return 0;
++	}
++	return -ETIMEDOUT;
++}
++
++static int enable_clock(u32 reg)
++{
++	writel(CLKCTRL_MODULE_EN, reg);
++	return wait_bits(reg, CLKCTRL_IDLEST_MASK, 0);
++}
++
++static int spi_init(void)
++{
++	int ret;
++
++	writel(SYSCONFIG_SOFTRESET, SPI_SYSCONFIG);
++	ret = wait_bits(SPI_SYSSTATUS, SYSSTATUS_RESETDONE, SYSSTATUS_RESETDONE);
++	if (ret)
++		return ret;
++
++	writel(MODULCTRL_SINGLE, SPI_MODULCTRL);
++	writel(CH0CONF_CLKD_24MHZ | CH0CONF_EPOL | CH0CONF_WL_8BIT |
++	       CH0CONF_TRM_TX_ONLY | CH0CONF_DPE0 | CH0CONF_FORCE, SPI_CH0CONF);
++	writel(CH0CTRL_EN, SPI_CH0CTRL);
++	return 0;
++}
++
++static void spi_stop(void)
++{
++	writel(0, SPI_CH0CTRL);
++	clrbits_le32(SPI_CH0CONF, CH0CONF_FORCE);
++}
++
++static int spi_write(const u8 *buf, size_t len)
++{
++	int ret;
++
++	while (len--) {
++		ret = wait_bits(SPI_CH0STAT, CH0STAT_TXS, CH0STAT_TXS);
++		if (ret)
++			return ret;
++		writel(*buf++, SPI_TX0);
++	}
++	return wait_bits(SPI_CH0STAT, CH0STAT_TXS | CH0STAT_EOT,
++			 CH0STAT_TXS | CH0STAT_EOT);
++}
++
++static int panel_cmd(u8 cmd, const u8 *params, size_t len)
++{
++	int ret;
++
++	writel(PIN_DC, GPIO3_REG + GPIO_CLEARDATAOUT);
++	ret = spi_write(&cmd, 1);
++	writel(PIN_DC, GPIO3_REG + GPIO_SETDATAOUT);
++	if (ret || !len)
++		return ret;
++	return spi_write(params, len);
++}
++
++static int panel_show(void)
++{
++	static const u8 columns[] = {0x00, 0x00, 0x00, SPLASH_WIDTH - 1};
++	static const u8 pages[] = {0x00, 0x00, (SPLASH_HEIGHT - 1) >> 8,
++				   (SPLASH_HEIGHT - 1) & 0xFF};
++	static const u8 address_mode = ADDRESS_MODE_MY_BGR;
++	size_t i = 0;
++	int ret;
++
++	while (i < sizeof(panel_init)) {
++		ret = panel_cmd(panel_init[i], &panel_init[i + 2], panel_init[i + 1]);
++		if (ret)
++			return ret;
++		i += 2 + panel_init[i + 1];
++	}
++
++	ret = panel_cmd(CMD_SLEEP_OUT, NULL, 0);
++	if (ret)
++		return ret;
++	mdelay(100);
++
++	ret = panel_cmd(CMD_ADDRESS_MODE, &address_mode, 1);
++	if (!ret)
++		ret = panel_cmd(CMD_COLUMN_ADDR, columns, sizeof(columns));
++	if (!ret)
++		ret = panel_cmd(CMD_PAGE_ADDR, pages, sizeof(pages));
++	if (!ret)
++		ret = panel_cmd(CMD_MEMORY_WRITE, splash_image, sizeof(splash_image));
++	if (!ret)
++		ret = panel_cmd(CMD_DISPLAY_ON, NULL, 0);
++	return ret;
++}
++
++void sensornode_splash(void)
++{
++	int ret;
++
++	ret = enable_clock(CM_PER_SPI1_CLKCTRL);
++	if (!ret)
++		ret = enable_clock(CM_PER_GPIO1_CLKCTRL);
++	if (!ret)
++		ret = enable_clock(CM_PER_GPIO3_CLKCTRL);
++	if (ret)
++		goto out;
++
++	configure_module_pin_mux(splash_pin_mux);
++
++	writel(PIN_DC | PIN_RESET, GPIO3_REG + GPIO_SETDATAOUT);
++	clrbits_le32(GPIO3_REG + GPIO_OE, PIN_DC | PIN_RESET);
++	clrbits_le32(GPIO1_REG + GPIO_OE, PIN_BACKLIGHT);
++
++	writel(PIN_RESET, GPIO3_REG + GPIO_CLEARDATAOUT);
++	udelay(20);
++	writel(PIN_RESET, GPIO3_REG + GPIO_SETDATAOUT);
++	mdelay(120);
++
++	ret = spi_init();
++	if (ret)
++		goto out;
++
++	ret = panel_show();
++	spi_stop();
++	if (!ret)
++		writel(PIN_BACKLIGHT, GPIO1_REG + GPIO_SETDATAOUT);
++out:
++	if (ret)
++		printf("splash: failed (%d)\n", ret);
++}
