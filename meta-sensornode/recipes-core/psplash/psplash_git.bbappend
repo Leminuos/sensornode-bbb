@@ -4,7 +4,6 @@ SPLASH_IMAGES = "file://psplash-sensornode.png;outsuffix=default"
 
 SRC_URI += " \
     file://0001-sensornode-match-S0b-layout.patch \
-    file://0002-sensornode-skip-the-double-buffering-probe.patch \
     file://psplash-bar.png \
     file://10-sensornode.conf \
 "
