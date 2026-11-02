@@ -6,7 +6,8 @@ StartLimitIntervalSec=60
 StartLimitBurst=5
 
 [Service]
-Type=simple
+Type=notify
+TimeoutStartSec=30
 Environment=TSLIB_TSDEVICE=/dev/input/event0
 Environment=TSLIB_CONFFILE=/etc/ts.conf
 Environment=TSLIB_CALIBFILE=/data/config/pointercal
