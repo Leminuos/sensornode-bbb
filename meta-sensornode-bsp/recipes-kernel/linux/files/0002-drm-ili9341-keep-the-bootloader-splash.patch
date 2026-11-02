@@ -1,0 +1,54 @@
+From c80a2ac5dc62961400c0910da64854c19573f6cc Mon Sep 17 00:00:00 2001
+From: Leminuos <buinguyen2804@gmail.com>
+Date: Mon, 2 Nov 2026 20:10:33 +0700
+Subject: [PATCH] drm/tiny/ili9341: keep the bootloader splash on first enable
+
+When U-Boot has already switched the panel on, the first modeset skips the
+init sequence but still pushes the empty framebuffer, so the splash turns
+black until userspace draws. Skip that first flush only.
+
+Upstream-Status: Inappropriate [product specific]
+---
+ drivers/gpu/drm/tiny/ili9341.c | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/tiny/ili9341.c b/drivers/gpu/drm/tiny/ili9341.c
+index 37e0c33..583ec11 100644
+--- a/drivers/gpu/drm/tiny/ili9341.c
++++ b/drivers/gpu/drm/tiny/ili9341.c
+@@ -50,12 +50,15 @@
+ #define ILI9341_MADCTL_MX	BIT(6)
+ #define ILI9341_MADCTL_MY	BIT(7)
+ 
++static bool yx240qv29_first_enable = true;
++
+ static void yx240qv29_enable(struct drm_simple_display_pipe *pipe,
+ 			     struct drm_crtc_state *crtc_state,
+ 			     struct drm_plane_state *plane_state)
+ {
+ 	struct mipi_dbi_dev *dbidev = drm_to_mipi_dbi_dev(pipe->crtc.dev);
+ 	struct mipi_dbi *dbi = &dbidev->dbi;
++	bool keep_boot_image;
+ 	u8 addr_mode;
+ 	int ret, idx;
+ 
+@@ -65,6 +68,8 @@ static void yx240qv29_enable(struct drm_simple_display_pipe *pipe,
+ 	DRM_DEBUG_KMS("\n");
+ 
+ 	ret = mipi_dbi_poweron_conditional_reset(dbidev);
++	keep_boot_image = yx240qv29_first_enable && ret == 1;
++	yx240qv29_first_enable = false;
+ 	if (ret < 0)
+ 		goto out_exit;
+ 	if (ret == 1)
+@@ -131,7 +136,9 @@ out_enable:
+ 	}
+ 	addr_mode |= ILI9341_MADCTL_BGR;
+ 	mipi_dbi_command(dbi, MIPI_DCS_SET_ADDRESS_MODE, addr_mode);
+-	mipi_dbi_enable_flush(dbidev, crtc_state, plane_state);
++	/* The bootloader splash stays up until userspace draws its first frame */
++	if (!keep_boot_image)
++		mipi_dbi_enable_flush(dbidev, crtc_state, plane_state);
+ out_exit:
+ 	drm_dev_exit(idx);
+ }
