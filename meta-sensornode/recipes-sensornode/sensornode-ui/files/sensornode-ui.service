@@ -15,6 +15,7 @@ Environment=TSLIB_FBDEVICE=/dev/fb0
 Environment=SENSORNODE_TELEMETRY_DB=/data/telemetry/telemetry.db
 ExecStartPre=-/usr/bin/psplash-write QUIT
 ExecStart=/usr/bin/sensornode-ui -platform linuxfb -plugin=tslib
+ExecStopPost=-/bin/sh -c '[ "$$SERVICE_RESULT" = success ] || dd if=/dev/zero of=/dev/fb0 bs=480 count=320 2>/dev/null'
 Restart=on-failure
 RestartSec=2
 
