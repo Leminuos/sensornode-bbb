@@ -7,7 +7,5 @@
 #
 
 MACHINE_EXTRA_RRECOMMENDS += " \
-    kernel-module-ili9341 \
-    kernel-module-drm-mipi-dbi \
     rtl8188eu \
 "
