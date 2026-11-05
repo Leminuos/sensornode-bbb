@@ -9,7 +9,6 @@ SRC_URI = "git://github.com/Leminuos/sensornode-core.git;protocol=https;branch=m
            file://sensornode-telemetry-data.conf \
            file://sensornode-otad.default \
            file://sensornode-settingsd.default \
-           file://sensornode-displayd.default \
            file://10-sensornode-settingsd-bbb.conf \
 "
 
@@ -34,20 +33,18 @@ USERADD_PARAM:${PN} = "--system --gid sensornode --groups i2c \
                        --home-dir /nonexistent --no-create-home \
                        --shell /sbin/nologin sensornode"
 
-PACKAGES =+ "${PN}-otad ${PN}-settingsd ${PN}-displayd"
+PACKAGES =+ "${PN}-otad ${PN}-settingsd"
 
-SYSTEMD_PACKAGES = "${PN} ${PN}-otad ${PN}-settingsd ${PN}-displayd"
+SYSTEMD_PACKAGES = "${PN} ${PN}-otad ${PN}-settingsd"
 SYSTEMD_SERVICE:${PN} = "sensornode-telemetryd.service"
 SYSTEMD_SERVICE:${PN}-otad = "sensornode-otad.service"
 SYSTEMD_SERVICE:${PN}-settingsd = "sensornode-settingsd.service"
-SYSTEMD_SERVICE:${PN}-displayd = "sensornode-displayd.service"
 SYSTEMD_AUTO_ENABLE = "enable"
 
 do_install:append() {
     install -m 0644 ${WORKDIR}/sensornode-telemetryd.default ${D}${sysconfdir}/default/sensornode-telemetryd
     install -m 0644 ${WORKDIR}/sensornode-otad.default ${D}${sysconfdir}/default/sensornode-otad
     install -m 0644 ${WORKDIR}/sensornode-settingsd.default ${D}${sysconfdir}/default/sensornode-settingsd
-    install -m 0644 ${WORKDIR}/sensornode-displayd.default ${D}${sysconfdir}/default/sensornode-displayd
 
     install -d ${D}${systemd_system_unitdir}/sensornode-telemetryd.service.d
     install -m 0644 ${WORKDIR}/10-sensornode-bbb.conf ${D}${systemd_system_unitdir}/sensornode-telemetryd.service.d/
@@ -75,14 +72,6 @@ FILES:${PN}-settingsd = " \
 "
 RDEPENDS:${PN}-settingsd = "${PN}"
 CONFFILES:${PN}-settingsd = "${sysconfdir}/default/sensornode-settingsd"
-
-FILES:${PN}-displayd = " \
-    ${bindir}/sensornode-displayd \
-    ${systemd_system_unitdir}/sensornode-displayd.service \
-    ${sysconfdir}/default/sensornode-displayd \
-"
-RDEPENDS:${PN}-displayd = "${PN} ${PN}-settingsd"
-CONFFILES:${PN}-displayd = "${sysconfdir}/default/sensornode-displayd"
 
 FILES:${PN} += " \
     ${systemd_system_unitdir}/sensornode-telemetryd.service.d \

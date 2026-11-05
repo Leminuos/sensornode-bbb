@@ -14,7 +14,7 @@ inherit cmake_qt5 pkgconfig systemd
 
 DEPENDS += "qtbase qtcharts sqlite3"
 
-RDEPENDS:${PN} = "qtbase-plugins tslib-conf ttf-dejavu-sans sensornode-core sensornode-core-settingsd sensornode-core-displayd"
+RDEPENDS:${PN} = "qtbase-plugins tslib-conf ttf-dejavu-sans sensornode-core sensornode-core-settingsd"
 
 EXTRA_OECMAKE += "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-debug', '-DPRODUCTION_BUILD=OFF', '-DPRODUCTION_BUILD=ON', d)}"
 
