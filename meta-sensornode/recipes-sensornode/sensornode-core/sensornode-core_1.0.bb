@@ -33,12 +33,13 @@ USERADD_PARAM:${PN} = "--system --gid sensornode --groups i2c \
                        --home-dir /nonexistent --no-create-home \
                        --shell /sbin/nologin sensornode"
 
-PACKAGES =+ "${PN}-otad ${PN}-settingsd"
+PACKAGES =+ "${PN}-otad ${PN}-settingsd ${PN}-powerd"
 
-SYSTEMD_PACKAGES = "${PN} ${PN}-otad ${PN}-settingsd"
+SYSTEMD_PACKAGES = "${PN} ${PN}-otad ${PN}-settingsd ${PN}-powerd"
 SYSTEMD_SERVICE:${PN} = "sensornode-telemetryd.service"
 SYSTEMD_SERVICE:${PN}-otad = "sensornode-otad.service"
 SYSTEMD_SERVICE:${PN}-settingsd = "sensornode-settingsd.service"
+SYSTEMD_SERVICE:${PN}-powerd = "sensornode-powerd.service"
 SYSTEMD_AUTO_ENABLE = "enable"
 
 do_install:append() {
@@ -72,6 +73,14 @@ FILES:${PN}-settingsd = " \
 "
 RDEPENDS:${PN}-settingsd = "${PN}"
 CONFFILES:${PN}-settingsd = "${sysconfdir}/default/sensornode-settingsd"
+
+FILES:${PN}-powerd = " \
+    ${bindir}/sensornode-powerd \
+    ${systemd_system_unitdir}/sensornode-powerd.service \
+    ${sysconfdir}/default/sensornode-powerd \
+"
+RDEPENDS:${PN}-powerd = "${PN}"
+CONFFILES:${PN}-powerd = "${sysconfdir}/default/sensornode-powerd"
 
 FILES:${PN} += " \
     ${systemd_system_unitdir}/sensornode-telemetryd.service.d \
