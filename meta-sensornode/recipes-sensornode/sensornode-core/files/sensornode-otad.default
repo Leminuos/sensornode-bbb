@@ -1,4 +1,4 @@
 # Tham số dòng lệnh cho sensornode-otad
-OTAD_ARGS="--mqtt-host 192.168.137.10 --force-update"
+OTAD_ARGS="--mqtt-host 192.168.137.10 --force-update --pending-file /data/ota/pending-version"
 
 #SENSORNODE_LOG_LEVEL=debug

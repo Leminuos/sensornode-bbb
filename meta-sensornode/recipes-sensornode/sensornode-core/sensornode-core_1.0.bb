@@ -8,6 +8,7 @@ SRC_URI = "git://github.com/Leminuos/sensornode-core.git;protocol=https;branch=m
            file://10-sensornode-bbb.conf \
            file://sensornode-telemetry-data.conf \
            file://sensornode-otad.default \
+           file://10-sensornode-otad-bbb.conf \
            file://sensornode-settingsd.default \
            file://10-sensornode-settingsd-bbb.conf \
 "
@@ -50,6 +51,9 @@ do_install:append() {
     install -d ${D}${systemd_system_unitdir}/sensornode-telemetryd.service.d
     install -m 0644 ${WORKDIR}/10-sensornode-bbb.conf ${D}${systemd_system_unitdir}/sensornode-telemetryd.service.d/
 
+    install -d ${D}${systemd_system_unitdir}/sensornode-otad.service.d
+    install -m 0644 ${WORKDIR}/10-sensornode-otad-bbb.conf ${D}${systemd_system_unitdir}/sensornode-otad.service.d/
+
     install -d ${D}${systemd_system_unitdir}/sensornode-settingsd.service.d
     install -m 0644 ${WORKDIR}/10-sensornode-settingsd-bbb.conf ${D}${systemd_system_unitdir}/sensornode-settingsd.service.d/
 
@@ -59,6 +63,7 @@ do_install:append() {
 FILES:${PN}-otad = " \
     ${bindir}/sensornode-otad \
     ${systemd_system_unitdir}/sensornode-otad.service \
+    ${systemd_system_unitdir}/sensornode-otad.service.d \
     ${sysconfdir}/default/sensornode-otad \
 "
 
