@@ -1,0 +1,4 @@
+# Tham số dòng lệnh cho sensornode-webd
+WEBD_ARGS="--upload-dir /data/upload"
+
+#SENSORNODE_LOG_LEVEL=debug
