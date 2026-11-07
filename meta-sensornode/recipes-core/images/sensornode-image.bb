@@ -17,4 +17,6 @@ IMAGE_INSTALL:append = " ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-hmi
 
 IMAGE_INSTALL:append = " ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-wifi', 'sensornode-wifi', '', d)}"
 
+BAD_RECOMMENDATIONS += "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-wifi', '', 'rtl8188eu', d)}"
+
 IMAGE_LINGUAS = ""
