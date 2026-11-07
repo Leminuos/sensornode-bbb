@@ -6,6 +6,8 @@ SRC_URI = " \
     file://10-wlan0.link \
     file://20-wlan0.network \
     file://sensornode-wifi.service \
+    file://sensornode-wifi-ctrl.conf \
+    file://sensornode-wifi-data.conf \
 "
 
 inherit systemd
@@ -20,9 +22,19 @@ do_install() {
 
     install -d ${D}${systemd_system_unitdir}
     install -m 0644 ${WORKDIR}/sensornode-wifi.service ${D}${systemd_system_unitdir}/
+
+    install -d ${D}${sysconfdir}/wpa_supplicant
+    install -m 0644 ${WORKDIR}/sensornode-wifi-ctrl.conf ${D}${sysconfdir}/wpa_supplicant/sensornode-ctrl.conf
+
+    install -d ${D}${nonarch_libdir}/tmpfiles.d
+    install -m 0644 ${WORKDIR}/sensornode-wifi-data.conf ${D}${nonarch_libdir}/tmpfiles.d/
 }
 
+FILES:${PN} += "${nonarch_libdir}/tmpfiles.d"
+
+# Group sensornode của control socket do sensornode-core tạo.
 RDEPENDS:${PN} = " \
+    sensornode-core \
     wpa-supplicant \
     wpa-supplicant-cli \
     wpa-supplicant-passphrase \

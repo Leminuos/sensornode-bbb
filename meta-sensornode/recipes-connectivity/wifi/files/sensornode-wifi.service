@@ -6,7 +6,7 @@ RequiresMountsFor=/data
 ConditionPathExists=/data/config/wpa_supplicant-wlan0.conf
 
 [Service]
-ExecStart=/usr/sbin/wpa_supplicant -Dnl80211 -iwlan0 -c/data/config/wpa_supplicant-wlan0.conf
+ExecStart=/usr/sbin/wpa_supplicant -Dnl80211 -iwlan0 -c/data/config/wpa_supplicant-wlan0.conf -I/etc/wpa_supplicant/sensornode-ctrl.conf
 Restart=on-failure
 RestartSec=5
 
