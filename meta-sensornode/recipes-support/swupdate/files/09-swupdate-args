@@ -1,16 +1,16 @@
 #!/bin/sh
 #
-# 09-swupdate-args — kích hoạt SWUpdate ở chế độ downloader: tải .swu trực tiếp
-# từ URL rồi flash vào slot inactive.
+# 09-swupdate-args — chạy SWUpdate flash .swu vào slot inactive. Tham số là URL
+# thì SWUpdate tự tải (downloader), là đường dẫn tuyệt đối thì cài file local.
 #
-# Usage: 09-swupdate-args <swu-url>
+# Usage: 09-swupdate-args <swu-url | /path/to/file.swu>
 #
 
 set -e
 
 url="$1"
 if [ -z "$url" ]; then
-    echo "usage: $(basename "$0") <swu-url>" >&2
+    echo "usage: $(basename "$0") <swu-url | /path/to/file.swu>" >&2
     exit 2
 fi
 
@@ -24,4 +24,7 @@ else
     selection="-e stable,copy1"
 fi
 
-exec swupdate -d "-u $url" -H @BOARD_NAME@:@HW_REVISION@ $selection -f /etc/swupdate.cfg
+case "$url" in
+    /*) exec swupdate -i "$url" -H @BOARD_NAME@:@HW_REVISION@ $selection -f /etc/swupdate.cfg ;;
+    *)  exec swupdate -d "-u $url" -H @BOARD_NAME@:@HW_REVISION@ $selection -f /etc/swupdate.cfg ;;
+esac
