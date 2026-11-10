@@ -42,7 +42,7 @@ Thiếu file hoặc JSON hỏng thì app dùng giá trị mặc định. File tr
 | `OTA_VERSION_FILE` | `/etc/sw-versions` |
 | `TSLIB_TSDEVICE` | `/dev/input/event0` |
 | `TSLIB_CONFFILE` | `/etc/ts.conf` |
-| `TSLIB_CALIBFILE` | `/data/config/pointercal` |
+| `TSLIB_CALIBFILE` | `/data/hmi/pointercal` |
 | `TSLIB_FBDEVICE` | `/dev/fb0` |
 
 Các biến `TSLIB_*` được set trong `sensornode-ui.service`.

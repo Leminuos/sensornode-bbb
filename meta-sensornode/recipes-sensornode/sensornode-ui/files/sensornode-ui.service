@@ -8,13 +8,17 @@ StartLimitBurst=5
 [Service]
 Type=notify
 TimeoutStartSec=30
+User=sensornode
+Group=sensornode
+SupplementaryGroups=video input systemd-journal
 Environment=TSLIB_TSDEVICE=/dev/input/event0
 Environment=TSLIB_CONFFILE=/etc/ts.conf
-Environment=TSLIB_CALIBFILE=/data/config/pointercal
+Environment=TSLIB_CALIBFILE=/data/hmi/pointercal
 Environment=TSLIB_FBDEVICE=/dev/fb0
 Environment=SENSORNODE_TELEMETRY_DB=/data/telemetry/telemetry.db
-ExecStartPre=-/usr/bin/psplash-write QUIT
-ExecStart=/usr/bin/sensornode-ui -platform linuxfb -plugin=tslib
+ExecStartPre=+-/usr/bin/psplash-write QUIT
+ExecStartPre=+/bin/sh -c '[ -e /data/hmi/pointercal ] || [ ! -e /data/config/pointercal ] || { cp /data/config/pointercal /data/hmi/pointercal && chown sensornode:sensornode /data/hmi/pointercal; }'
+ExecStart=/usr/bin/sensornode-ui -platform linuxfb:nographicsmodeswitch -plugin=tslib
 ExecStopPost=-/bin/sh -c '[ "$$SERVICE_RESULT" = success ] || dd if=/dev/zero of=/dev/fb0 bs=480 count=320 2>/dev/null'
 Restart=on-failure
 RestartSec=2
