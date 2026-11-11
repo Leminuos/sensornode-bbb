@@ -11,11 +11,11 @@ software =
             copy1: {
                 images: (
                     {
-                        filename           = "@@SENSORNODE_IMAGE@@-@@MACHINE@@.ext4.gz";
+                        filename           = "@@SENSORNODE_IMAGE@@-@@MACHINE@@.@@SENSORNODE_SLOT_FSTYPE@@.gz";
                         device             = "@@SENSORNODE_SLOT_A_DEV@@";
                         type               = "raw";
                         compressed         = "zlib";
-                        sha256             = "$swupdate_get_sha256(@@SENSORNODE_IMAGE@@-@@MACHINE@@.ext4.gz)";
+                        sha256             = "$swupdate_get_sha256(@@SENSORNODE_IMAGE@@-@@MACHINE@@.@@SENSORNODE_SLOT_FSTYPE@@.gz)";
                     }
                 );
                 bootenv: (
@@ -29,11 +29,11 @@ software =
             copy2: {
                 images: (
                     {
-                        filename           = "@@SENSORNODE_IMAGE@@-@@MACHINE@@.ext4.gz";
+                        filename           = "@@SENSORNODE_IMAGE@@-@@MACHINE@@.@@SENSORNODE_SLOT_FSTYPE@@.gz";
                         device             = "@@SENSORNODE_SLOT_B_DEV@@";
                         type               = "raw";
                         compressed         = "zlib";
-                        sha256             = "$swupdate_get_sha256(@@SENSORNODE_IMAGE@@-@@MACHINE@@.ext4.gz)";
+                        sha256             = "$swupdate_get_sha256(@@SENSORNODE_IMAGE@@-@@MACHINE@@.@@SENSORNODE_SLOT_FSTYPE@@.gz)";
                     }
                 );
                 bootenv: (

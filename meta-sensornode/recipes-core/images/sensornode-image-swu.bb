@@ -19,7 +19,7 @@ SWUPDATE_IMAGES = "${SENSORNODE_IMAGE}"
 python () {
     if not bb.utils.contains('DISTRO_FEATURES', 'sensornode-ota', True, False, d):
         raise bb.parse.SkipRecipe("requires the sensornode-ota distro feature")
-    d.setVarFlag('SWUPDATE_IMAGES_FSTYPES', d.getVar('SENSORNODE_IMAGE'), '.ext4.gz')
+    d.setVarFlag('SWUPDATE_IMAGES_FSTYPES', d.getVar('SENSORNODE_IMAGE'), '.' + d.getVar('SENSORNODE_SLOT_FSTYPE') + '.gz')
 }
 
 SWUPDATE_SIGNING = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-secureboot', 'CMS', '', d)}"
