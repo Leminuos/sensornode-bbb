@@ -44,6 +44,10 @@ VIRTUAL-RUNTIME_init_manager = "systemd"
 DISTRO_FEATURES_BACKFILL_CONSIDERED += "sysvinit"
 VIRTUAL_RUNTIME_initscripts = "systemd-compat-units"
 
+# The kernel and DTB live in the signed FIT at the end of each slot
+MACHINE_ESSENTIAL_EXTRA_RDEPENDS:remove = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-verity', 'kernel-image kernel-devicetree', '', d)}"
+MACHINE_EXTRA_RRECOMMENDS:remove = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-verity', 'kernel-devicetree', '', d)}"
+
 TMPDIR = "${TOPDIR}/tmp-${DISTRO}"
 
 require conf/include/sensornode-vars.inc

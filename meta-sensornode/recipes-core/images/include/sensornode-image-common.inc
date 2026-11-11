@@ -4,7 +4,11 @@ python () {
         bb.fatal("sensornode-readonly requires sensornode-ota")
     if 'sensornode-secureboot' in df and 'sensornode-ota' not in df:
         bb.fatal("sensornode-secureboot is only supported together with sensornode-ota")
+    if 'sensornode-verity' in df and not all(f in df for f in ('sensornode-secureboot', 'sensornode-readonly')):
+        bb.fatal("sensornode-verity requires sensornode-secureboot and sensornode-readonly")
 }
+
+inherit ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-verity', 'sensornode-verity', '', d)}
 
 IMAGE_FSTYPES = " wic wic.bmap ext4.gz"
 
@@ -25,14 +29,17 @@ ROOTFS_POSTPROCESS_COMMAND += "create_data_mountpoint; "
 IMAGE_INSTALL:append = " ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-ota', \
     'swupdate swupdate-www libubootenv-bin ota-confirm-boot sensornode-core-otad', '', d)}"
 
-WKS_FILE = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-ota', \
-    'bbb-sensornode-ab.wks.in', 'bbb-sensornode-single.wks.in', d)}"
+WKS_FILE = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-verity', 'bbb-sensornode-ab-verity.wks.in', \
+    bb.utils.contains('DISTRO_FEATURES', 'sensornode-ota', 'bbb-sensornode-ab.wks.in', 'bbb-sensornode-single.wks.in', d), d)}"
 
-IMAGE_ROOTFS_MAXSIZE = "${SENSORNODE_SLOT_SIZE_KiB}"
+# Với verity, ext4 + hash tree (~1/127 phần data) phải kết thúc trước FIT
+IMAGE_ROOTFS_MAXSIZE = "${@int(d.getVar('SENSORNODE_VERITY_FIT_OFFSET_KiB')) * 127 // 128 \
+    if bb.utils.contains('DISTRO_FEATURES', 'sensornode-verity', True, False, d) \
+    else d.getVar('SENSORNODE_SLOT_SIZE_KiB')}"
 IMAGE_OVERHEAD_FACTOR = "1.2"
 
 python check_slot_usage() {
-    slot_kib = int(d.getVar('SENSORNODE_SLOT_SIZE_KiB'))
+    slot_kib = int(d.getVar('IMAGE_ROOTFS_MAXSIZE'))
     warn_pct = int(d.getVar('SENSORNODE_SLOT_WARN_PERCENT'))
     used_kib = get_rootfs_size(d)
     used_pct = used_kib * 100 / slot_kib
