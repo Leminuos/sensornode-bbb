@@ -19,7 +19,7 @@ ROM (trong SoC)
                  └─ ext4load /boot/fitImage
                       └─ bootm: kiểm tra chữ ký FIT bằng public key trong DTB của U-Boot    ← verified boot
                            └─ kernel + DTB
-                                └─ mount rootfs                         ✗ không kiểm tra (chưa có dm-verity)
+                                └─ mount rootfs                         ← dm-verity (khi bật sensornode-verity)
                                      └─ SWUpdate: kiểm tra chữ ký .swu trước khi ghi slot   ← signed OTA
 ```
 
@@ -28,7 +28,7 @@ ROM (trong SoC)
 | ROM → MLO | Không kiểm tra | AM335x trên BBB là GP device (general purpose): ROM không có chức năng secure boot. Chỉ bản HS (high security) của SoC mới xác thực được SPL |
 | MLO → U-Boot | Không kiểm tra | `SPL_SIGN_ENABLE = 0` |
 | U-Boot → kernel | Kiểm tra | FIT có chữ ký RSA2048 |
-| Kernel → rootfs | Không kiểm tra | Chưa triển khai dm-verity |
+| Kernel → rootfs | Kiểm tra khi bật `sensornode-verity` | dm-verity, root hash nằm trong config đã ký của FIT |
 | `.swu` → slot | Kiểm tra | Chữ ký CMS trên `sw-description` + sha256 từng file |
 
 ## 2. FIT image

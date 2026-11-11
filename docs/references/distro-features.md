@@ -33,6 +33,7 @@ Mỗi distro có `TMPDIR = ${TOPDIR}/tmp-${DISTRO}` nên artifact nằm ở `tmp
 | `sensornode-ota` | SWUpdate, layout A/B, U-Boot A/B env, verify boot + rollback |
 | `sensornode-secureboot` | U-Boot verified boot + `.swu` ký CMS + U-Boot chỉ nhận `active_slot`/`ustate`/`boot_count` từ env trên thẻ |
 | `sensornode-readonly` | Rootfs mount read-only |
+| `sensornode-verity` | Rootfs kiểm tra bằng dm-verity, kernel + root hash nằm trong FIT ký ở cuối mỗi slot. Cần `sensornode-secureboot` và `sensornode-readonly` |
 | `sensornode-devtools` | Dev tools (`i2c-tools`, `evtest`, `strace`, `tslib-calibrate`...) |
 | `sensornode-login` | Login access (`debug-tweaks`, `ssh-server-openssh`) |
 | `sensornode-debug` | Bật log Qt app |

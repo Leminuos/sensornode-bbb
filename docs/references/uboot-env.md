@@ -29,6 +29,8 @@ Offset/size định nghĩa ở `SENSORNODE_ENV_OFFSET` / `SENSORNODE_ENV_SIZE` t
 | `bootcmd` | `run ota_boot` |
 | `mmc_part` | `1` (slot A), `2` (slot B) |
 | `bootargs` | `root=/dev/mmcblk0p${mmc_part} ro rootwait console=ttyO0,115200n8 panic=10` |
+| `bootargs` (`sensornode-verity`) | `root=/dev/dm-0 dm-mod.waitfor=/dev/mmcblk0p${mmc_part} dm-mod.create="vroot,,,ro,0 <sectors> verity 1 <slot> <slot> 4096 4096 <data_blocks> <hash_start> sha256 <root_hash> <salt>"`, tham số lấy từ FIT |
+| `verity_*` (`sensornode-verity`) | Biến tạm, `ota_load_kernel` đọc từ config node của FIT |
 | `fit_image` | `/boot/fitImage` (U-Boot build với `CONFIG_FIT_SIGNATURE`, tức distro feature `sensornode-secureboot`) |
 | `kernel_image` | `/boot/zImage` (U-Boot build không có `CONFIG_FIT_SIGNATURE`) |
 | `fdtfile` | `/boot/am335x-boneblack.dtb` (U-Boot build không có `CONFIG_FIT_SIGNATURE`) |
@@ -37,10 +39,10 @@ Offset/size định nghĩa ở `SENSORNODE_ENV_OFFSET` / `SENSORNODE_ENV_SIZE` t
 
 | Script | Việc làm |
 |---|---|
-| `ota_boot` | Gọi lần lượt `ota_check_rollback` → `ota_pick_slot` → `ota_load_kernel` rồi boot |
+| `ota_boot` | Gọi lần lượt `ota_check_rollback` → `ota_pick_slot` → `ota_load_kernel`, đặt `bootargs` rồi boot |
 | `ota_check_rollback` | `ustate=1`: đủ `boot_limit` thì lật slot và reset, chưa đủ thì tăng `boot_count` |
 | `ota_pick_slot` | Map `active_slot` → `mmc_part` |
-| `ota_load_kernel` | `ext4load` kernel từ slot active |
+| `ota_load_kernel` | `ext4load` kernel từ slot active. Với `sensornode-verity`: `part start` + `mmc read` FIT ở đuôi slot, rồi `fdt get value` các tham số verity |
 
 ## Lệnh userspace
 
