@@ -5,11 +5,13 @@ SRC_URI:append = " \
     file://0001-bbb-ota-boot-env.patch \
     ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-secureboot', 'file://env-writeable-list.cfg file://0002-bbb-env-writeable-list.patch', '', d)} \
     file://0003-bbb-boot-splash.patch \
+    ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-verity', 'file://verity.cfg file://0004-bbb-verity-boot.patch', '', d)} \
     file://sensornode-splash.bmp \
     file://splash-bmp2h.py \
     ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-hmi', 'file://splash.cfg', '', d)} \
 "
 
+SENSORNODE_UBOOT_VERITY_CFG = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-verity', 'CONFIG_CMD_PART=y CONFIG_CMD_FDT=y', '', d)}"
 SENSORNODE_UBOOT_ENV_LOCK_CFG = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-secureboot', 'CONFIG_ENV_IS_NOWHERE=y CONFIG_ENV_APPEND=y CONFIG_ENV_WRITEABLE_LIST=y', '', d)}"
 
 # u-boot-tools-native cung cấp mkenvimage để build u-boot-env.raw.
@@ -18,6 +20,11 @@ DEPENDS:append = " u-boot-tools-native"
 
 do_configure:prepend() {
     python3 ${WORKDIR}/splash-bmp2h.py ${WORKDIR}/sensornode-splash.bmp ${S}/board/ti/am335x/splash_image.h
+
+    # Offset (block 512 B) và kích thước vùng FIT tính từ đầu slot, dùng bởi 0004-bbb-verity-boot.patch
+    printf '#define SENSORNODE_VERITY_FIT_BLK "0x%x"\n#define SENSORNODE_VERITY_FIT_CNT "0x%x"\n' \
+        $(expr ${SENSORNODE_VERITY_FIT_OFFSET_KiB} \* 2) $(expr ${SENSORNODE_VERITY_FIT_SIZE_MiB} \* 2048) \
+        > ${S}/include/configs/sensornode_verity.h
 }
 
 do_configure:append() {
@@ -29,7 +36,7 @@ do_configure:append() {
 
     for opt in CONFIG_ENV_OFFSET=${SENSORNODE_ENV_OFFSET} CONFIG_ENV_SIZE=${SENSORNODE_ENV_SIZE} \
                CONFIG_SYS_REDUNDAND_ENVIRONMENT=y CONFIG_ENV_OFFSET_REDUND=${SENSORNODE_ENV_OFFSET_REDUND} \
-               ${SENSORNODE_UBOOT_ENV_LOCK_CFG}; do
+               ${SENSORNODE_UBOOT_ENV_LOCK_CFG} ${SENSORNODE_UBOOT_VERITY_CFG}; do
         if ! grep -qx "$opt" ${B}/.config; then
             bbfatal "U-Boot .config does not contain $opt"
         fi

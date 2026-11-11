@@ -11,6 +11,11 @@ SENSORNODE_SLOT_WARN_PERCENT ?= "90"
 SENSORNODE_DATA_SIZE_MiB    ?= "128"
 SENSORNODE_DATA_SIZE_KiB     = "${@int(d.getVar('SENSORNODE_DATA_SIZE_MiB')) * 1024}"
 
+# dm-verity slot: [ext4 | hash tree | signed FIT], FIT at a fixed offset from the slot start
+SENSORNODE_VERITY_FIT_SIZE_MiB  ?= "10"
+SENSORNODE_VERITY_FIT_OFFSET_KiB = "${@(int(d.getVar('SENSORNODE_SLOT_SIZE_MiB')) - int(d.getVar('SENSORNODE_VERITY_FIT_SIZE_MiB'))) * 1024}"
+SENSORNODE_SLOT_FSTYPE           = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-verity', 'verity', 'ext4', d)}"
+
 # U-Boot environment on raw MMC
 SENSORNODE_ENV_DEV          ?= "/dev/mmcblk0"
 SENSORNODE_ENV_OFFSET       ?= "0x260000"

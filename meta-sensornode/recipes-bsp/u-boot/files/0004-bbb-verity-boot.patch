@@ -1,0 +1,70 @@
+From: sensornode <noreply@local>
+Subject: am335x_evm: boot a dm-verity rootfs from the FIT at the end of the slot
+
+diff --git a/include/configs/am335x_evm.h b/include/configs/am335x_evm.h
+index 71c9618..16fc5b4 100644
+--- a/include/configs/am335x_evm.h
++++ b/include/configs/am335x_evm.h
+@@ -91,7 +91,39 @@
+  * boot (CONFIG_FIT_SIGNATURE) it is a signed FIT image booted with bootm,
+  * otherwise a zImage + DTB pair booted with bootz.
+  */
+-#ifdef CONFIG_FIT_SIGNATURE
++#include "sensornode_verity.h"
++
++/*
++ * dm-verity: the slot holds [ext4 | hash tree | signed FIT]. The FIT sits at
++ * a fixed offset and carries the verity parameters as properties of its
++ * configuration node, so the config signature checked by bootm covers them.
++ */
++#define OTA_FIT_CONF "/configurations/conf-am335x-boneblack.dtb"
++#define OTA_FIT_GET(var, prop) \
++	"setenv " var "; fdt get value " var " " OTA_FIT_CONF " sensornode,verity-" prop "; "
++
++#if defined(CONFIG_FIT_SIGNATURE) && defined(SENSORNODE_VERITY_FIT_BLK)
++#define OTA_KERNEL_FILES ""
++#define OTA_LOAD_KERNEL \
++	"echo OTA: loading verity FIT from slot ${active_slot} (mmcblk0p${mmc_part}); " \
++	"part start mmc 0 ${mmc_part} slot_start; " \
++	"setexpr fit_blk ${slot_start} + " SENSORNODE_VERITY_FIT_BLK "; " \
++	"mmc read ${kernel_addr_r} ${fit_blk} " SENSORNODE_VERITY_FIT_CNT "; " \
++	"fdt addr ${kernel_addr_r}; " \
++	OTA_FIT_GET("verity_sectors", "sectors") \
++	OTA_FIT_GET("verity_data_blocks", "data-blocks") \
++	OTA_FIT_GET("verity_hash_start", "hash-start") \
++	OTA_FIT_GET("verity_root_hash", "root-hash") \
++	OTA_FIT_GET("verity_salt", "salt")
++#define OTA_SET_BOOTARGS \
++	"setenv bootargs \"console=ttyO0,115200n8 panic=10 ro rootwait root=/dev/dm-0 " \
++	"dm-mod.waitfor=/dev/mmcblk0p${mmc_part} " \
++	"dm-mod.create=\\\"vroot,,,ro,0 ${verity_sectors} verity 1 " \
++	"/dev/mmcblk0p${mmc_part} /dev/mmcblk0p${mmc_part} 4096 4096 " \
++	"${verity_data_blocks} ${verity_hash_start} sha256 ${verity_root_hash} ${verity_salt}\\\"\"; "
++#define OTA_BOOT_KERNEL \
++	"bootm ${kernel_addr_r}#conf-am335x-boneblack.dtb"
++#elif defined(CONFIG_FIT_SIGNATURE)
+ #define OTA_KERNEL_FILES \
+ 	"fit_image=/boot/fitImage\0"
+ #define OTA_LOAD_KERNEL \
+@@ -111,6 +143,11 @@
+ 	"bootz ${kernel_addr_r} - ${fdt_addr_r}"
+ #endif
+ 
++#ifndef OTA_SET_BOOTARGS
++#define OTA_SET_BOOTARGS \
++	"setenv bootargs root=/dev/mmcblk0p${mmc_part} ro rootwait console=ttyO0,115200n8 panic=10; "
++#endif
++
+ #define CONFIG_EXTRA_ENV_SETTINGS \
+ 	DEFAULT_LINUX_BOOT_ENV \
+ 	"fdtfile=undefined\0" \
+@@ -210,8 +247,8 @@
+ 	"ota_boot=" \
+ 		"run ota_check_rollback; " \
+ 		"run ota_pick_slot; " \
+-		"setenv bootargs root=/dev/mmcblk0p${mmc_part} ro rootwait console=ttyO0,115200n8 panic=10; " \
+ 		"run ota_load_kernel; " \
++		OTA_SET_BOOTARGS \
+ 		OTA_BOOT_KERNEL "\0" \
+ 	NANDARGS \
+ 	NETARGS \
