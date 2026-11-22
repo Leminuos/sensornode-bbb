@@ -43,3 +43,5 @@ do_compile:append() {
 do_deploy:append() {
     install -m 0644 ${B}/u-boot-env.raw ${DEPLOYDIR}/u-boot-env.raw
 }
+
+EXTRA_OEMAKE:append = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-debug', '', ' KCFLAGS=-DSENSORNODE_QUIET_BOOT', d)}"

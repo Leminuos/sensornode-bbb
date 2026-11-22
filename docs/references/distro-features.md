@@ -35,7 +35,7 @@ Mỗi distro có `TMPDIR = ${TOPDIR}/tmp-${DISTRO}` nên artifact nằm ở `tmp
 | `sensornode-readonly` | Rootfs mount read-only |
 | `sensornode-devtools` | Dev tools (`i2c-tools`, `evtest`, `strace`, `tslib-calibrate`...) |
 | `sensornode-login` | Login access (`debug-tweaks`, `ssh-server-openssh`) |
-| `sensornode-debug` | Bật log Qt app |
+| `sensornode-debug` | Bật log Qt app và kernel log |
 
 ## Thêm feature mới
 
