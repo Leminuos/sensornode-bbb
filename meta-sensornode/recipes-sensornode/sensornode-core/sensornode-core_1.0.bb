@@ -13,6 +13,7 @@ SRC_URI = "git://github.com/Leminuos/sensornode-core.git;protocol=https;branch=m
            file://10-sensornode-settingsd-bbb.conf \
            file://10-sensornode-webd-bbb.conf \
            file://sensornode-webd.default \
+           file://sensornode-early-tmpfiles.service \
 "
 
 SRCREV = "e8c52ca1eb5354ab061f854c6aa5ba1186f5869f"
@@ -66,6 +67,8 @@ do_install:append() {
     install -m 0644 ${WORKDIR}/10-sensornode-webd-bbb.conf ${D}${systemd_system_unitdir}/sensornode-webd.service.d/
 
     install -m 0644 ${WORKDIR}/sensornode-telemetry-data.conf ${D}${nonarch_libdir}/tmpfiles.d/
+
+    install -m 0644 ${WORKDIR}/sensornode-early-tmpfiles.service ${D}${systemd_system_unitdir}/
 }
 
 FILES:${PN}-otad = " \
@@ -106,6 +109,7 @@ CONFFILES:${PN}-webd = "${sysconfdir}/default/sensornode-webd"
 
 FILES:${PN} += " \
     ${systemd_system_unitdir}/sensornode-telemetryd.service.d \
+    ${systemd_system_unitdir}/sensornode-early-tmpfiles.service \
     ${nonarch_libdir}/tmpfiles.d \
 "
 CONFFILES:${PN} = "${sysconfdir}/default/sensornode-telemetryd"
