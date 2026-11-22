@@ -21,6 +21,7 @@ DISTRO_FEATURES:remove = " \
     zeroconf \
     debuginfod \
     multiarch \
+    nfs \
 "
 
 DISTRO_FEATURES:append = " systemd"
