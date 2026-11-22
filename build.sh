@@ -4,7 +4,6 @@ set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RELEASE_DIR="${RELEASE_DIR:-${ROOT_DIR}/release}"
 MACHINE="${MACHINE:-bbb-sensornode}"
-DISTRO="${DISTRO:-sensornode-dev}"
 TARGETS=(sensornode-image sensornode-image-swu)
 
 usage() {
@@ -14,7 +13,6 @@ Usage: ./build.sh /path/to/poky
 Environment overrides:
   RELEASE_DIR  Release output directory (default: repo/release)
   MACHINE      Deploy machine name (default: bbb-sensornode)
-  MACHINE      Deploy distro name (default: sensornode-dev)
 EOF
 }
 
@@ -60,6 +58,10 @@ cd "${YOCTO_DIR}"
 set +u
 source "${POKY_DIR}/oe-init-build-env" "${BUILD_DIR}" >/dev/null
 set -Eeuo pipefail
+
+# DISTRO lấy từ cấu hình bitbake (local.conf) để copy đúng thư mục tmp-${DISTRO}.
+DISTRO="$(bitbake-getvar --value DISTRO | tail -n 1)"
+echo "Distro   : ${DISTRO}"
 
 for target in "${TARGETS[@]}"; do
     echo "Building ${target}..."
