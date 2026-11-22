@@ -2,10 +2,14 @@
 """
 OTA firmware server chạy trên HOST.
 
-Tool TEST — cấu hình fix cứng ở khối CONFIG bên dưới, không cần tham số.
+Tool TEST — cấu hình ở khối CONFIG bên dưới, không cần tham số.
 Cách dùng:
   1. python3 ota_server.py
   2. Copy file .swu vào thư mục release/ (ngang hàng với tools/, ở gốc repo)
+
+Biến môi trường (tuỳ chọn):
+  OTA_HOST         tên/IP board dùng để tải .swu (mặc định <hostname>.local)
+  OTA_RELEASE_DIR  thư mục chứa .swu
 
 manifest.json được ghi cạnh script này (tools/ota-server/manifest.json).
 """
@@ -14,6 +18,7 @@ import hashlib
 import json
 import os
 import re
+import socket
 import subprocess
 import threading
 import time
@@ -23,9 +28,10 @@ _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))   # tools/ota-server
 _REPO_ROOT = os.path.dirname(os.path.dirname(_SCRIPT_DIR))  # gốc repo
 
 # ============================= CONFIG ========================================
-HOST_IP        = "192.168.137.10"  # IP của host (nhúng vào url manifest)
+# Tên/IP mà board dùng để tải .swu (nhúng vào url manifest). Mặc định là tên mDNS của máy đang chạy.
+HOST_IP        = os.environ.get("OTA_HOST") or socket.gethostname().lower() + ".local"
 HTTP_PORT      = 8000
-RELEASE_DIR    = os.path.join(_REPO_ROOT, "release")  # nơi đặt file .swu
+RELEASE_DIR    = os.environ.get("OTA_RELEASE_DIR") or os.path.join(_REPO_ROOT, "release")  # nơi đặt file .swu
 MQTT_BROKER    = "127.0.0.1"
 MQTT_PORT      = 1883
 MQTT_TOPIC     = "ota/latest"
