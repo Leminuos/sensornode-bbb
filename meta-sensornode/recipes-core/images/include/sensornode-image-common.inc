@@ -19,6 +19,21 @@ create_data_mountpoint() {
 }
 ROOTFS_POSTPROCESS_COMMAND += "create_data_mountpoint; "
 
+# tty1 không hiển thị gì vì không có fbcon. Backlight do HMI ghi và settingsd lưu.
+# Các unit còn lại phục vụ module, debugfs/tracing, mqueue, fuse và cấu hình mạng từ
+# kernel cmdline, SensorNode không dùng nhưng chúng tranh CPU lúc đầu boot.
+mask_unused_units() {
+    install -d ${IMAGE_ROOTFS}${sysconfdir}/systemd/system
+    for unit in getty@tty1.service systemd-backlight@.service \
+                kmod-static-nodes.service modprobe@configfs.service modprobe@drm.service \
+                modprobe@efi_pstore.service modprobe@fuse.service \
+                sys-kernel-debug.mount sys-kernel-tracing.mount dev-mqueue.mount \
+                sys-fs-fuse-connections.mount systemd-network-generator.service; do
+        ln -sf /dev/null ${IMAGE_ROOTFS}${sysconfdir}/systemd/system/$unit
+    done
+}
+ROOTFS_POSTPROCESS_COMMAND += "mask_unused_units; "
+
 # ---------------------------------------------------------------------------
 # sensornode-ota
 # ---------------------------------------------------------------------------
