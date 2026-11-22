@@ -4,15 +4,30 @@
 
 **SensorNode** là một sensor node Embedded Linux chạy trên BeagleBone Black. Thiết bị có màn hình TFT cảm ứng hiển thị dashboard (nhiệt độ, độ ẩm, ánh sáng), đọc cảm biến qua I2C, gửi/nhận dữ liệu qua MQTT và hỗ trợ cập nhật firmware từ xa (OTA) theo cơ chế A/B có rollback tự động. Toàn bộ hệ điều hành được build bằng Yocto kirkstone.
 
-Repo này chỉ chứa phần hệ điều hành — Yocto layer, distro, image, OTA — và tool phía host. Source code ứng dụng Qt nằm ở repo riêng [sensornode-ui](https://github.com/Leminuos/sensornode-ui), được recipe fetch theo commit đã pin.
-
 | Thư mục | Vai trò |
 |---|---|
-| `meta-sensornode-bsp/` | Yocto layer BSP, chỉ chứa phần cứng: machine `bbb-sensornode`, kernel (devicetree + config fragment), U-Boot verified boot |
-| `meta-sensornode/` | Yocto layer product: distro `sensornode`, image, Qt app, OTA (SWUpdate, U-Boot A/B env, partition layout), `/data` |
-| `tools/` | Tool phía host: OTA firmware server, chụp màn hình TFT |
+| `meta-sensornode-bsp/` | Yocto layer BSP |
+| `meta-sensornode/` | Yocto layer product |
+| `tools/` | Tool phía host |
 
-Layer BSP không phụ thuộc layer product; layer product phụ thuộc BSP, meta-openembedded (`meta-oe`, `meta-networking`), meta-qt5 và meta-swupdate. Các giá trị dùng chung giữa nhiều nơi — kích thước slot/`/data`, offset U-Boot env, device của slot, tên image, metadata OTA — chỉ định nghĩa ở [`meta-sensornode/conf/include/sensornode-vars.inc`](meta-sensornode/conf/include/sensornode-vars.inc).
+---
+
+## Partition layout
+
+Layout của thẻ SD:
+
+| Vùng | Offset | Kích thước | Kiểu | Nội dung |
+|---|---|---|---|---|
+| `MLO` | `0x20000` | 128 KB | raw | SPL |
+| `u-boot.img` | `0x60000` | 384 KB | raw | U-Boot |
+| U-Boot env | `0x260000` | `0x20000` | raw | Biến A/B |
+| U-Boot env (redundant) | `0x280000` | `0x20000` | raw | Bản sao của env |
+| `mmcblk0p1` rootA | 4 MiB | 160 MiB | ext4 | Rootfs slot A |
+| `mmcblk0p2` rootB | 164 MiB | 160 MiB | ext4 | Rootfs slot B |
+| `mmcblk0p3` data | 324 MiB | 128 MiB | ext4 | `/data` |
+
+- Rootfs mount read-only khi bật `sensornode-readonly` (distro `sensornode`).
+- Không có partition `/boot` riêng: kernel nằm trong `/boot` của từng slot nên kernel và rootfs được cập nhật đồng bộ.
 
 ---
 
