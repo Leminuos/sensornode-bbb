@@ -1,84 +1,99 @@
 # Chạy MQTT broker trên máy host
 
-Guide này hướng dẫn cách cài Mosquitto trên máy host (Ubuntu/Debian) để board gửi số liệu cảm biến và nhận thông báo OTA.
+Guide này cài Mosquitto trên máy host để board gửi số liệu cảm biến và nhận thông báo OTA. Host có thể là Windows hoặc Ubuntu/Debian, chỉ cần nằm cùng LAN với board.
 
 ```
-   BBB (192.168.137.100)                 Host / gateway (192.168.137.1)
-   +---------------------+               +-----------------------+
-   | sensornode-ui       |   TCP 1883    | mosquitto broker      |
-   |  (MQTT client)      | ------------> |  listener 1883 (mqtt) |
-   +---------------------+               +-----------------------+
+   Router (DHCP)
+   ├── BBB (IP động)  sensornode-telemetryd, sensornode-otad
+   └── Host           mosquitto :1883, ota_server.py :8000
 ```
 
-## 1. Cài mosquitto trên host (Ubuntu/Debian)
+Board nhận IP qua DHCP và gọi broker bằng `SENSORNODE_MQTT_HOST` (mặc định đặt trong `meta-sensornode/conf/include/sensornode-vars.inc`). Nên đặt giá trị này là tên mDNS của host (`<hostname>.local`) để đổi router không phải build lại.
+
+## 1. Cài mosquitto
+
+Ubuntu/Debian:
 
 ```bash
-sudo apt update
 sudo apt install -y mosquitto mosquitto-clients
 ```
 
+Windows: cài bằng bộ cài trên mosquitto.org, broker chạy thành service `mosquitto`. Thêm thư mục cài vào `PATH` để dùng được `mosquitto_sub`/`mosquitto_pub`.
+
 ## 2. Cấu hình broker listen ra LAN
 
-Mosquitto 2.x mặc định chỉ listen `localhost`. Phải khai báo listener bind ra interface LAN để BBB kết nối được. Tạo file `/etc/mosquitto/conf.d/sensornode.conf`:
+Mosquitto 2.x mặc định chỉ listen `localhost`. Thêm vào file cấu hình (Ubuntu: `/etc/mosquitto/conf.d/sensornode.conf`, Windows: `mosquitto.conf` trong thư mục cài):
 
 ```conf
-# MQTT cho BBB client
 listener 1883 0.0.0.0
 protocol mqtt
 
-# WebSockets cho dashboard web (nếu cần)
-listener 9001 0.0.0.0
-protocol websockets
-
-# Lab/internal: không auth
+# Lab: không auth
 allow_anonymous true
 ```
 
->`allow_anonymous true` chỉ chấp nhận được trong môi trường lab/internal — production phải bật auth.
+> `allow_anonymous true` chỉ dùng trong lab, production phải bật auth.
 
 Restart broker:
 
 ```bash
-sudo systemctl restart mosquitto
-sudo systemctl enable mosquitto      # chạy lại sau reboot host
+sudo systemctl restart mosquitto        # Ubuntu
 ```
 
-## 3. Mở firewall (nếu host bật ufw)
-
-```bash
-sudo ufw allow from 192.168.137.0/24 to any port 1883 proto tcp
-sudo ufw allow from 192.168.137.0/24 to any port 9001 proto tcp
+```powershell
+Restart-Service mosquitto               # Windows, PowerShell admin
 ```
 
-Cách kiểm tra host có bật ufw không:
+Nếu Windows báo `Only one usage of each socket address`, port 1883 đang bị process khác giữ. Tìm bằng `netstat -ano | findstr :1883` rồi `Get-Process -Id <PID>`.
+
+## 3. Mở firewall
+
+Ubuntu (nếu bật ufw):
 
 ```bash
-sudo ufw status
+sudo ufw allow 1883/tcp
+sudo ufw allow 8000/tcp
 ```
 
-## 4. Kiểm tra kết quả
+Windows: đặt mạng đang dùng là **Private**, rồi trong PowerShell admin:
 
-Trên máy host:
+```powershell
+New-NetFirewallRule -DisplayName "SensorNode MQTT" -Direction Inbound -Protocol TCP -LocalPort 1883 -Profile Private -Action Allow
+New-NetFirewallRule -DisplayName "SensorNode OTA"  -Direction Inbound -Protocol TCP -LocalPort 8000 -Profile Private -Action Allow
+```
+
+## 4. Chạy OTA server
 
 ```bash
-ss -tlnp | grep -E '1883|9001'      # phải thấy 0.0.0.0:1883
-mosquitto_sub -h 192.168.137.1 -t 'sensor/#' -v
+python3 tools/ota-server/ota_server.py
+```
+
+URL trong manifest mặc định dùng `<hostname>.local` của máy chạy script. Đặt `OTA_HOST` để dùng tên hoặc IP khác, `OTA_RELEASE_DIR` để đổi thư mục chứa `.swu`. PowerShell: `$env:OTA_HOST="192.168.1.20"; python ota_server.py`.
+
+## 5. Kiểm tra
+
+Trên host:
+
+```bash
+netstat -ano | findstr :1883          # Windows, phải thấy 0.0.0.0:1883
+ss -tlnp | grep 1883                  # Ubuntu
+mosquitto_sub -h localhost -t 'sensornode/#' -v
 ```
 
 Trên board:
 
 ```bash
-journalctl -u sensornode-ui -f        # thấy log kết nối broker thành công
-mosquitto_pub -h 192.168.137.1 -t 'test/bbb' -m 'hello from bbb'
+networkctl status eth0                # IP do router cấp
+resolvectl query <hostname>.local     # mDNS phân giải ra IP host
+journalctl -u sensornode-telemetryd -f
 ```
 
-## 5. Đổi địa chỉ broker
+## 6. Đổi địa chỉ broker
 
-Nếu IP host khác `192.168.137.10`, sửa trên board - không cần build lại:
+Đặt trong `build-sensornode/conf/local.conf` rồi build lại:
 
-```bash
-vi /data/config/mqtt.json          # {"host": "<ip-host>", "port": 1883}
-systemctl restart sensornode-ui
+```
+SENSORNODE_MQTT_HOST = "<hostname>.local"
 ```
 
-File nằm trên `/data` nên giữ nguyên qua reboot và OTA.
+Sửa tạm trên board không cần build: sửa `--mqtt-host` trong `/etc/default/sensornode-telemetryd` và `/etc/default/sensornode-otad`, rồi `systemctl restart sensornode-telemetryd sensornode-otad`. Với distro có `sensornode-readonly`, file sửa nằm ở lớp upper trên `/data` và che bản trong image mới sau OTA, xoá nó trong `/data/overlay-etc/upper/default/` khi không dùng nữa.
