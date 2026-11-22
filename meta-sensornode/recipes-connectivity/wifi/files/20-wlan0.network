@@ -3,6 +3,7 @@ Name=wlan0
 
 [Network]
 DHCP=ipv4
+MulticastDNS=yes
 
 [DHCPv4]
 RouteMetric=100

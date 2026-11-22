@@ -1,6 +1,6 @@
 # Chạy NTP server trên máy host
 
-Board đồng bộ giờ bằng `systemd-timesyncd`, thử lần lượt các server trong `SENSORNODE_NTP_SERVERS`. Mặc định là `192.168.137.10` trước, sau đó mới tới `pool.ntp.org`. Nhờ vậy trong LAN không có Internet, board vẫn lấy được giờ từ host. Guide này dựng NTP server bằng chrony trên host Ubuntu/Debian.
+Board đồng bộ giờ bằng `systemd-timesyncd`, thử lần lượt các server trong `SENSORNODE_NTP_SERVERS`. Mặc định chỉ có `pool.ntp.org`, cộng với NTP server mà router cấp qua DHCP. Guide này chỉ cần khi board nằm trong LAN không có Internet: thêm IP host vào đầu `SENSORNODE_NTP_SERVERS` (mục 5) để board lấy giờ từ host. Guide này dựng NTP server bằng chrony trên host Ubuntu/Debian.
 
 ```
    BBB (192.168.137.100)                Host (192.168.137.10)

@@ -5,7 +5,7 @@ require include/sensornode-image-common.inc
 
 IMAGE_INSTALL:append = " \
     libgpiod-tools libgpiod \
-    bbb-static-ip \
+    sensornode-network \
     libsqlite3 \
     sensornode-core \
     sensornode-core-settingsd \
