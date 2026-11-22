@@ -46,10 +46,15 @@ SYSTEMD_SERVICE:${PN}-powerd = "sensornode-powerd.service"
 SYSTEMD_SERVICE:${PN}-webd = "sensornode-webd.service"
 SYSTEMD_AUTO_ENABLE = "enable"
 
+do_install[vardeps] += "SENSORNODE_MQTT_HOST"
+
 do_install:append() {
     install -m 0644 ${WORKDIR}/sensornode-telemetryd.default ${D}${sysconfdir}/default/sensornode-telemetryd
     install -m 0644 ${WORKDIR}/sensornode-otad.default ${D}${sysconfdir}/default/sensornode-otad
     install -m 0644 ${WORKDIR}/sensornode-settingsd.default ${D}${sysconfdir}/default/sensornode-settingsd
+    sed -i 's#@MQTT_HOST@#${SENSORNODE_MQTT_HOST}#' \
+        ${D}${sysconfdir}/default/sensornode-telemetryd \
+        ${D}${sysconfdir}/default/sensornode-otad
 
     install -d ${D}${systemd_system_unitdir}/sensornode-telemetryd.service.d
     install -m 0644 ${WORKDIR}/10-sensornode-bbb.conf ${D}${systemd_system_unitdir}/sensornode-telemetryd.service.d/

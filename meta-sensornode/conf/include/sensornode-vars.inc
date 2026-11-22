@@ -24,6 +24,7 @@ OTA_SW_VERSION              ?= "0.1.3"
 OTA_HW_REVISION             ?= "1.0"
 OTA_BOARD_NAME              ?= "bbb-sensornode"
 
+SENSORNODE_MQTT_HOST        ?= "NGUYEN.local"
 SENSORNODE_NTP_SERVERS      ?= "0.pool.ntp.org 1.pool.ntp.org 2.pool.ntp.org"
 
 # Signing keys
