@@ -1,12 +1,17 @@
 [Unit]
 Description=SensorNode Qt HMI
-After=data.mount network.target sensornode-telemetryd.service sensornode-otad.service sensornode-settingsd.service sensornode-powerd.service
-Wants=data.mount sensornode-telemetryd.service sensornode-otad.service sensornode-settingsd.service sensornode-powerd.service
+DefaultDependencies=no
+# Không chờ daemon: UI tự kết nối lại khi socket sẵn sàng.
+After=data.mount sensornode-early-tmpfiles.service
+Wants=data.mount sensornode-early-tmpfiles.service sensornode-telemetryd.service sensornode-otad.service sensornode-settingsd.service sensornode-powerd.service
 StartLimitIntervalSec=60
 StartLimitBurst=5
+Conflicts=shutdown.target
+Before=shutdown.target
 
 [Service]
 Type=notify
+Nice=-10
 TimeoutStartSec=30
 User=sensornode
 Group=sensornode
@@ -16,8 +21,7 @@ Environment=TSLIB_CONFFILE=/etc/ts.conf
 Environment=TSLIB_CALIBFILE=/data/hmi/pointercal
 Environment=TSLIB_FBDEVICE=/dev/fb0
 Environment=SENSORNODE_TELEMETRY_DB=/data/telemetry/telemetry.db
-ExecStartPre=+-/usr/bin/psplash-write QUIT
-ExecStartPre=+/bin/sh -c '[ -e /data/hmi/pointercal ] || [ ! -e /data/config/pointercal ] || { cp /data/config/pointercal /data/hmi/pointercal && chown sensornode:sensornode /data/hmi/pointercal; }'
+ExecStartPre=+/bin/sh -c '/usr/bin/psplash-write QUIT || true; systemd-tmpfiles --create sensornode-ui-data.conf || exit 1; [ -e /data/hmi/pointercal ] || [ ! -e /data/config/pointercal ] || { cp /data/config/pointercal /data/hmi/pointercal && chown sensornode:sensornode /data/hmi/pointercal; }'
 ExecStart=/usr/bin/sensornode-ui -platform linuxfb:nographicsmodeswitch -plugin=tslib
 ExecStopPost=-/bin/sh -c '[ "$$SERVICE_RESULT" = success ] || dd if=/dev/zero of=/dev/fb0 bs=480 count=320 2>/dev/null'
 Restart=on-failure
