@@ -26,6 +26,9 @@ DISTRO_FEATURES:remove = " \
 
 DISTRO_FEATURES:append = " systemd"
 
+# journald đã lưu log persistent, không cần busybox syslogd/klogd.
+VIRTUAL-RUNTIME_base-utils-syslog = ""
+
 PACKAGECONFIG_DISTRO:pn-qtbase = " \
     linuxfb \
     tslib \
