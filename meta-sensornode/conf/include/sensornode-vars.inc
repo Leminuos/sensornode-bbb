@@ -15,8 +15,8 @@ SENSORNODE_SLOT_WARN_PERCENT ?= "90"
 SENSORNODE_DATA_SIZE_MiB    ?= "128"
 SENSORNODE_DATA_SIZE_KiB     = "${@int(d.getVar('SENSORNODE_DATA_SIZE_MiB')) * 1024}"
 
-# Rootfs slot content
-SENSORNODE_SLOT_FSTYPE       = "ext4"
+# Rootfs slot content: plain ext4, or ext4 + dm-verity hash tree with secure boot
+SENSORNODE_SLOT_FSTYPE       = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-secureboot', 'verity', 'ext4', d)}"
 
 # U-Boot environment on raw MMC
 SENSORNODE_ENV_DEV          ?= "/dev/mmcblk0"

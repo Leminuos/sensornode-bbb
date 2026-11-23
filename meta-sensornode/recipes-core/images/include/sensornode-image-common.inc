@@ -4,6 +4,8 @@ python () {
         bb.fatal("sensornode-readonly requires sensornode-ota")
     if 'sensornode-secureboot' in df and 'sensornode-ota' not in df:
         bb.fatal("sensornode-secureboot is only supported together with sensornode-ota")
+    if 'sensornode-secureboot' in df and 'sensornode-readonly' not in df:
+        bb.fatal("sensornode-secureboot requires sensornode-readonly")
 }
 
 IMAGE_FSTYPES = " wic wic.bmap ${SENSORNODE_SLOT_FSTYPE}.gz bootfs.gz"
@@ -32,7 +34,7 @@ WKS_FILE = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-ota', \
 IMAGE_ROOTFS_MAXSIZE = "${SENSORNODE_SLOT_SIZE_KiB}"
 IMAGE_OVERHEAD_FACTOR = "1.2"
 
-inherit sensornode-bootfs
+inherit sensornode-bootfs ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-secureboot', 'sensornode-verity', '', d)}
 
 python check_slot_usage() {
     slot_kib = int(d.getVar('IMAGE_ROOTFS_MAXSIZE'))
