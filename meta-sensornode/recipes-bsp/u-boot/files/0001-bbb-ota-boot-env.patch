@@ -81,7 +81,7 @@ index 7fb1b3a..3f651d9 100644
 +		"run ota_check_rollback; " \
 +		"run ota_pick_slot; " \
 +		"setenv bootargs root=/dev/mmcblk0p${mmc_part} ro rootwait console=ttyS0,115200n8" \
-+			OTA_BOOTARGS_QUIET " panic=10; " \
++			OTA_BOOTARGS_QUIET " sensornode.slot=${active_slot} panic=10; " \
 +		"run ota_load_kernel; " \
 +		OTA_BOOT_KERNEL "\0" \
  	NANDARGS \
