@@ -14,15 +14,19 @@ if [ -z "$url" ]; then
     exit 2
 fi
 
-# Chọn install set theo slot đang chạy:
+# Chọn install set theo slot đang chạy, lấy từ sensornode.slot= mà U-Boot
+# ghi vào cmdline (thiết bị root là /dev/dm-0 khi bật dm-verity):
 #   đang chạy slot A -> flash vào copy2 (slot B)
 #   đang chạy slot B -> flash vào copy1 (slot A)
-rootfs=$(swupdate -g)
-if [ "$rootfs" = '@SLOT_A_DEV@' ]; then
-    selection="-e stable,copy2"
-else
-    selection="-e stable,copy1"
-fi
+slot=$(sed -n 's/.*sensornode\.slot=\([AB]\).*/\1/p' /proc/cmdline)
+case "$slot" in
+    A) selection="-e stable,copy2" ;;
+    B) selection="-e stable,copy1" ;;
+    *)
+        echo "$(basename "$0"): no sensornode.slot=A|B on the kernel command line" >&2
+        exit 1
+        ;;
+esac
 
 case "$url" in
     /*) exec swupdate -i "$url" -H @BOARD_NAME@:@HW_REVISION@ $selection -f /etc/swupdate.cfg ;;
