@@ -27,11 +27,14 @@ Offset/size định nghĩa ở `SENSORNODE_ENV_OFFSET` / `SENSORNODE_ENV_SIZE` t
 | Biến | Giá trị |
 |---|---|
 | `bootcmd` | `run ota_boot` |
-| `mmc_part` | `1` (slot A), `2` (slot B) |
-| `bootargs` | `root=/dev/mmcblk0p${mmc_part} ro rootwait console=ttyO0,115200n8 panic=10` |
-| `fit_image` | `/boot/fitImage` (U-Boot build với `CONFIG_FIT_SIGNATURE`, tức distro feature `sensornode-secureboot`) |
-| `kernel_image` | `/boot/zImage` (U-Boot build không có `CONFIG_FIT_SIGNATURE`) |
-| `fdtfile` | `/boot/am335x-boneblack.dtb` (U-Boot build không có `CONFIG_FIT_SIGNATURE`) |
+| `boot_part` | `1` (slot A), `3` (slot B): partition chứa kernel |
+| `root_part` | `2` (slot A), `4` (slot B): partition rootfs |
+| `bootargs` | `root=/dev/mmcblk0p${root_part} ro rootwait console=ttyS0,115200n8 [quiet] sensornode.slot=${active_slot} panic=10` |
+| `fit_image` | `/fitImage` trên partition boot (distro feature `sensornode-secureboot`) |
+| `kernel_image` | `/zImage` trên partition boot |
+| `fdtfile` | `/am335x-boneblack.dtb` trên partition boot |
+
+`sensornode.slot=` là nguồn duy nhất để userspace biết slot đang chạy: khi bật dm-verity, thiết bị mount `/` là `/dev/mapper/root` chứ không phải partition. `root=` vẫn là partition rootfs, initramfs dùng nó làm data/hash device của dm-verity. `quiet` chỉ có khi build không bật `sensornode-debug`.
 
 ## Script
 
@@ -39,8 +42,8 @@ Offset/size định nghĩa ở `SENSORNODE_ENV_OFFSET` / `SENSORNODE_ENV_SIZE` t
 |---|---|
 | `ota_boot` | Gọi lần lượt `ota_check_rollback` → `ota_pick_slot` → `ota_load_kernel` rồi boot |
 | `ota_check_rollback` | `ustate=1`: đủ `boot_limit` thì lật slot và reset, chưa đủ thì tăng `boot_count` |
-| `ota_pick_slot` | Map `active_slot` → `mmc_part` |
-| `ota_load_kernel` | `ext4load` kernel từ slot active |
+| `ota_pick_slot` | Map `active_slot` → `boot_part`, `root_part` |
+| `ota_load_kernel` | `ext4load` kernel từ partition boot của slot active |
 
 ## Lệnh userspace
 

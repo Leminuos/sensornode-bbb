@@ -27,7 +27,7 @@ Bản production mount rootfs ở chế độ chỉ đọc. Tutorial này giải
 Theo tham số `ro` trên kernel command line do U-Boot truyền. Script `ota_boot` trong U-Boot env của dự án đặt:
 
 ```
-setenv bootargs root=/dev/mmcblk0p${mmc_part} ro rootwait console=ttyO0,115200n8 panic=10
+setenv bootargs root=/dev/mmcblk0p${root_part} ro rootwait console=ttyS0,115200n8 sensornode.slot=${active_slot} panic=10
 ```
 
 **Bước 2: systemd remount theo fstab.**

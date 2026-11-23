@@ -14,7 +14,7 @@
 
 ## Partition layout
 
-Layout của thẻ SD:
+Layout của thẻ SD (bảng GPT):
 
 | Vùng | Offset | Kích thước | Kiểu | Nội dung |
 |---|---|---|---|---|
@@ -22,12 +22,15 @@ Layout của thẻ SD:
 | `u-boot.img` | `0x60000` | 384 KB | raw | U-Boot |
 | U-Boot env | `0x260000` | `0x20000` | raw | Biến A/B |
 | U-Boot env (redundant) | `0x280000` | `0x20000` | raw | Bản sao của env |
-| `mmcblk0p1` rootA | 4 MiB | 160 MiB | ext4 | Rootfs slot A |
-| `mmcblk0p2` rootB | 164 MiB | 160 MiB | ext4 | Rootfs slot B |
-| `mmcblk0p3` data | 324 MiB | 128 MiB | ext4 | `/data` |
+| `mmcblk0p1` bootA | 4 MiB | 16 MiB | ext4 | Kernel slot A |
+| `mmcblk0p2` rootA | 20 MiB | 156 MiB | ext4 (+ hash tree) | Rootfs slot A |
+| `mmcblk0p3` bootB | 176 MiB | 16 MiB | ext4 | Kernel slot B |
+| `mmcblk0p4` rootB | 192 MiB | 156 MiB | ext4 (+ hash tree) | Rootfs slot B |
+| `mmcblk0p5` data | 348 MiB | 128 MiB | ext4 | `/data` |
 
 - Rootfs mount read-only khi bật `sensornode-readonly` (distro `sensornode`).
-- Không có partition `/boot` riêng: kernel nằm trong `/boot` của từng slot nên kernel và rootfs được cập nhật đồng bộ.
+- Mỗi slot có partition boot riêng, OTA ghi cả boot và rootfs của slot nên kernel và rootfs được cập nhật đồng bộ.
+- Khi bật `sensornode-secureboot`, partition boot chứa FIT đã ký (kernel, DTB, initramfs mang root hash) và rootfs được kiểm tra bằng dm-verity. Chi tiết ở [docs/references/partition-layout.md](docs/references/partition-layout.md).
 
 ---
 

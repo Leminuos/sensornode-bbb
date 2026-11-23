@@ -125,19 +125,27 @@ Trên serial console khi board reboot, U-Boot log:
 
 ```
 >>> OTA: upgrade boot attempt 1/3
->>> OTA: loading kernel from slot B (mmcblk0p2)
+>>> OTA: loading kernel from slot B (mmcblk0p3)
 ```
 
-`boot_count` được tăng lên 1 (vì `ustate=1`). U-Boot load kernel/dtb từ `/boot` trong rootfs của slot active, `bootargs` set `root=/dev/mmcblk0p2` (slot B).
+Hoặc, với bản production:
+
+```
+>>> OTA: upgrade boot attempt 1/3
+>>> OTA: loading fitImage from slot B (mmcblk0p3)
+```
 
 ## 6. Sau khi boot vào slot B
 
 Login bình thường, verify slot mới:
 
 ```bash
-# rootfs đang được mount là p2
-mount | grep '/'
-# /dev/mmcblk0p2 on / type ext4 ...
+# slot đang chạy
+grep -o 'sensornode.slot=.' /proc/cmdline
+# sensornode.slot=B
+
+# rootfs: /dev/mmcblk0p4 (dev) hoặc /dev/mapper/root (production)
+mount | grep ' / '
 
 # Version mới
 cat /etc/sw-versions
@@ -200,7 +208,7 @@ Kernel panic - not syncing: No working init found.
 [panic again, reboot]
 
 >>> OTA: Boot failed 3 times -> rolling back
->>> OTA: loading kernel from slot B (mmcblk0p2)     ◄── slot cũ, đã commit ở section 6
+>>> OTA: loading kernel from slot B (mmcblk0p3)     ◄── slot cũ, đã commit ở section 6
 [boot bình thường]
 ```
 

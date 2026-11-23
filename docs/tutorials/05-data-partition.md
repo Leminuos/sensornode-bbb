@@ -203,7 +203,7 @@ WantedBy=local-fs.target
 | Tên file `data.mount` | systemd bắt buộc tên unit match đường dẫn mount: `/data` → `data.mount`, `/var/lib/x` → `var-lib-x.mount`. Đặt sai tên thì unit không bao giờ được dùng |
 | `DefaultDependencies=no` | Bỏ các phụ thuộc mặc định mà systemd tự thêm để unit chạy được ở giai đoạn rất sớm của boot |
 | `After=local-fs-pre.target`, `Before=local-fs.target` | Mount cùng nhóm với các filesystem cục bộ khác và hoàn tất trước khi dịch vụ thường khởi động |
-| `What=LABEL=data` | Tìm thiết bị theo nhãn thay vì `/dev/mmcblk0p3`. Nhãn cố định, không phụ thuộc thứ tự phân vùng hay layout đổi về sau |
+| `What=LABEL=data` | Tìm thiết bị theo nhãn thay vì `/dev/mmcblk0p5`. Nhãn cố định, không phụ thuộc thứ tự phân vùng hay layout đổi về sau |
 | `Options=defaults,noatime` | `noatime`: đọc file không ghi lại thời điểm truy cập, giảm bớt ghi thừa lên thẻ nhớ |
 | `WantedBy=local-fs.target` | Khi enable, unit được kéo vào mỗi lần boot |
 
@@ -232,7 +232,7 @@ Service nào cần `/data` phải tự khai báo nếu không nó có thể ch�
 ```bash
 findmnt /data
 # TARGET SOURCE         FSTYPE OPTIONS
-# /data  /dev/mmcblk0p3 ext4   rw,noatime
+# /data  /dev/mmcblk0p5 ext4   rw,noatime
 
 systemctl status data.mount
 lsblk -o NAME,LABEL,SIZE,MOUNTPOINT
@@ -245,7 +245,7 @@ Nếu `/data` không mount:
 | Kiểm tra | Lệnh |
 |---|---|
 | Unit có được enable không | `systemctl is-enabled data.mount` |
-| Nhãn phân vùng có đúng không | `blkid /dev/mmcblk0p3` → phải thấy `LABEL="data"` |
+| Nhãn phân vùng có đúng không | `blkid /dev/mmcblk0p5` → phải thấy `LABEL="data"` |
 | Có lỗi filesystem không | `journalctl -b \| grep -i "data\|ext4"` |
 | Phân vùng có đúng kiểu không | `fdisk -l /dev/mmcblk0` → type `83 Linux` |
 
