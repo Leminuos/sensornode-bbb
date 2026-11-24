@@ -4,9 +4,12 @@ python () {
         bb.fatal("sensornode-readonly requires sensornode-ota")
     if 'sensornode-secureboot' in df and 'sensornode-ota' not in df:
         bb.fatal("sensornode-secureboot is only supported together with sensornode-ota")
+    if 'sensornode-secureboot' in df and 'sensornode-readonly' not in df:
+        bb.fatal("sensornode-secureboot requires sensornode-readonly")
 }
 
-IMAGE_FSTYPES = " wic wic.bmap ext4.gz"
+IMAGE_FSTYPES = " wic wic.bmap ${SENSORNODE_SLOT_FSTYPE}.gz bootfs.gz"
+IMAGE_TYPEDEP:wic += "bootfs ${SENSORNODE_SLOT_FSTYPE}"
 
 # ---------------------------------------------------------------------------
 # Persistent /data partition
@@ -31,8 +34,10 @@ WKS_FILE = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-ota', \
 IMAGE_ROOTFS_MAXSIZE = "${SENSORNODE_SLOT_SIZE_KiB}"
 IMAGE_OVERHEAD_FACTOR = "1.2"
 
+inherit sensornode-bootfs ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-secureboot', 'sensornode-verity', '', d)}
+
 python check_slot_usage() {
-    slot_kib = int(d.getVar('SENSORNODE_SLOT_SIZE_KiB'))
+    slot_kib = int(d.getVar('IMAGE_ROOTFS_MAXSIZE'))
     warn_pct = int(d.getVar('SENSORNODE_SLOT_WARN_PERCENT'))
     used_kib = get_rootfs_size(d)
     used_pct = used_kib * 100 / slot_kib

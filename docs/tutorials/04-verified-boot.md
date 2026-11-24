@@ -16,10 +16,10 @@ ROM (trong SoC)
   └─ nạp MLO (SPL)                              ✗ không kiểm tra
        └─ nạp u-boot.img                        ✗ không kiểm tra
             └─ U-Boot đọc U-Boot env trên thẻ   ✗ env không ký
-                 └─ ext4load /boot/fitImage
+                 └─ ext4load /fitImage từ partition boot của slot
                       └─ bootm: kiểm tra chữ ký FIT bằng public key trong DTB của U-Boot    ← verified boot
-                           └─ kernel + DTB
-                                └─ mount rootfs                         ✗ không kiểm tra (chưa có dm-verity)
+                           └─ kernel + DTB + initramfs (chứa root hash)
+                                └─ initramfs dựng dm-verity cho partition rootfs            ← dm-verity
                                      └─ SWUpdate: kiểm tra chữ ký .swu trước khi ghi slot   ← signed OTA
 ```
 
@@ -28,7 +28,7 @@ ROM (trong SoC)
 | ROM → MLO | Không kiểm tra | AM335x trên BBB là GP device (general purpose): ROM không có chức năng secure boot. Chỉ bản HS (high security) của SoC mới xác thực được SPL |
 | MLO → U-Boot | Không kiểm tra | `SPL_SIGN_ENABLE = 0` |
 | U-Boot → kernel | Kiểm tra | FIT có chữ ký RSA2048 |
-| Kernel → rootfs | Không kiểm tra | Chưa triển khai dm-verity |
+| Kernel → rootfs | Kiểm tra | dm-verity: mỗi block 4 KiB được so với hash tree, root hash nằm trong initramfs của signed FIT |
 | `.swu` → slot | Kiểm tra | Chữ ký CMS trên `sw-description` + sha256 từng file |
 
 ## 2. FIT image
@@ -102,7 +102,7 @@ KERNEL_CLASSES:append   = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-s
 | Biến | Ý nghĩa |
 |---|---|
 | `KERNEL_CLASSES` + `kernel-fitimage` | Bật class tạo FIT từ kernel và DTB |
-| `KERNEL_IMAGETYPE = fitImage` | File kernel cài vào `/boot` là `fitImage` thay cho `zImage` |
+| `KERNEL_IMAGETYPE = fitImage` | Kernel recipe dựng `fitImage` (kernel + DTB) và nhờ đó nhúng public key vào DTB của U-Boot. FIT dùng để boot là bản do image type `bootfs` dựng lại, thêm initramfs dm-verity |
 | `UBOOT_SIGN_ENABLE = 1` | Sign FIT và nhúng public key vào DTB của U-Boot |
 | `UBOOT_SIGN_KEYDIR` | Thư mục chứa `dev.key` (private) và `dev.crt` (certificate). |
 | `UBOOT_SIGN_KEYNAME` | Tên cặp key → `dev.key`, `dev.crt`, node `key-dev` |
@@ -134,7 +134,8 @@ linux-yocto  do_assemble_fitimage           tạo fit-image.its, mkimage → fit
                                             → ký cấu hình và ghi public key vào bản copy u-boot.dtb, đánh dấu required
 linux-yocto  do_deploy                      deploy fitImage và u-boot.dtb có key
 u-boot       do_deploy                      class uboot-sign: make EXT_DTB=<u-boot.dtb có key>, deploy u-boot.img
-image        do_rootfs                      /boot/fitImage vào rootfs
+image        do_image_verity                ext4 + hash tree, ghi root hash vào .verity.env
+image        do_image_bootfs                FIT {kernel, DTB, initramfs + verity.env}, mkimage ký → partition boot
 ```
 
 Tham số `-r` trong lệnh `mkimage` đặt `required = "conf"` cho key: U-Boot bắt buộc mọi cấu hình FIT phải có chữ ký hợp lệ bằng key này. Đây là điều kiện để verified boot có ý nghĩa.

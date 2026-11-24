@@ -42,7 +42,6 @@ do_install:append() {
     sed -i \
         -e "s#@BOARD_NAME@#${OTA_BOARD_NAME}#g" \
         -e "s#@HW_REVISION@#${OTA_HW_REVISION}#g" \
-        -e "s#@SLOT_A_DEV@#${SENSORNODE_SLOT_A_DEV}#g" \
         ${D}${bindir}/09-swupdate-args
 }
 

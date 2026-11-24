@@ -2,14 +2,21 @@
 SENSORNODE_IMAGE            ?= "sensornode-image"
 SENSORNODE_DATA_IMG         ?= "sensornode-data.ext4"
 
-# Partition layout
-SENSORNODE_SLOT_A_DEV       ?= "/dev/mmcblk0p1"
-SENSORNODE_SLOT_B_DEV       ?= "/dev/mmcblk0p2"
-SENSORNODE_SLOT_SIZE_MiB    ?= "160"
+# Partition layout: bootA, rootA, bootB, rootB, data
+SENSORNODE_BOOT_A_DEV       ?= "/dev/mmcblk0p1"
+SENSORNODE_SLOT_A_DEV       ?= "/dev/mmcblk0p2"
+SENSORNODE_BOOT_B_DEV       ?= "/dev/mmcblk0p3"
+SENSORNODE_SLOT_B_DEV       ?= "/dev/mmcblk0p4"
+SENSORNODE_BOOT_SIZE_MiB    ?= "16"
+SENSORNODE_BOOT_SIZE_KiB     = "${@int(d.getVar('SENSORNODE_BOOT_SIZE_MiB')) * 1024}"
+SENSORNODE_SLOT_SIZE_MiB    ?= "156"
 SENSORNODE_SLOT_SIZE_KiB     = "${@int(d.getVar('SENSORNODE_SLOT_SIZE_MiB')) * 1024}"
 SENSORNODE_SLOT_WARN_PERCENT ?= "90"
 SENSORNODE_DATA_SIZE_MiB    ?= "128"
 SENSORNODE_DATA_SIZE_KiB     = "${@int(d.getVar('SENSORNODE_DATA_SIZE_MiB')) * 1024}"
+
+# Rootfs slot content: plain ext4, or ext4 + dm-verity hash tree with secure boot
+SENSORNODE_SLOT_FSTYPE       = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-secureboot', 'verity', 'ext4', d)}"
 
 # U-Boot environment on raw MMC
 SENSORNODE_ENV_DEV          ?= "/dev/mmcblk0"

@@ -48,6 +48,10 @@ VIRTUAL-RUNTIME_init_manager = "systemd"
 DISTRO_FEATURES_BACKFILL_CONSIDERED += "sysvinit"
 VIRTUAL_RUNTIME_initscripts = "systemd-compat-units"
 
+# Kernel và DTB nằm trên partition boot của mỗi slot, không cài vào rootfs.
+MACHINE_ESSENTIAL_EXTRA_RDEPENDS:remove = "kernel-image kernel-devicetree"
+MACHINE_EXTRA_RRECOMMENDS:remove = "kernel-devicetree"
+
 TMPDIR = "${TOPDIR}/tmp-${DISTRO}"
 
 require conf/include/sensornode-vars.inc

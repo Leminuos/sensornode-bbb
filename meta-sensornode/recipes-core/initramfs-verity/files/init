@@ -1,0 +1,45 @@
+#!/bin/sh
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+export PATH
+
+mount -t devtmpfs devtmpfs /dev
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+
+fail() {
+    echo "verity: $*" > /dev/kmsg
+    exit 1
+}
+
+[ -r /etc/verity.env ] || fail "/etc/verity.env missing"
+. /etc/verity.env
+
+root=
+for arg in $(cat /proc/cmdline); do
+    case "$arg" in
+        root=*) root="${arg#root=}" ;;
+    esac
+done
+[ -n "$root" ] || fail "no root= on the kernel command line"
+
+tries=0
+while [ ! -b "$root" ]; do
+    tries=$((tries + 1))
+    [ "$tries" -le 10 ] || fail "$root did not appear"
+    sleep 1
+done
+
+# No udev in the initramfs: let libdevmapper create /dev/mapper/root itself.
+export DM_DISABLE_UDEV=1
+table="0 $VERITY_DATA_SECTORS verity 1 $root $root 4096 4096 $VERITY_DATA_BLOCKS $VERITY_HASH_START sha256 $VERITY_ROOT_HASH $VERITY_SALT 1 panic_on_corruption"
+dmsetup create root --readonly --table "$table" || fail "dmsetup create failed"
+
+mkdir -p /newroot
+mount -t ext4 -o ro /dev/mapper/root /newroot || fail "mount of /dev/mapper/root failed"
+echo "verity: $root mapped, root hash $VERITY_ROOT_HASH" > /dev/kmsg
+
+umount /sys
+umount /proc
+mount -o move /dev /newroot/dev
+exec switch_root /newroot /sbin/init
