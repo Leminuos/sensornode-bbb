@@ -22,6 +22,17 @@ create_data_mountpoint() {
 }
 ROOTFS_POSTPROCESS_COMMAND += "create_data_mountpoint; "
 
+SENSORNODE_MASKED_UNITS = "systemd-network-generator.service \
+    ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-debug', '', 'sys-kernel-debug.mount', d)}"
+
+mask_unused_units() {
+    install -d ${IMAGE_ROOTFS}${sysconfdir}/systemd/system
+    for unit in ${SENSORNODE_MASKED_UNITS}; do
+        ln -sf /dev/null ${IMAGE_ROOTFS}${sysconfdir}/systemd/system/$unit
+    done
+}
+ROOTFS_POSTPROCESS_COMMAND += "mask_unused_units; "
+
 # ---------------------------------------------------------------------------
 # sensornode-ota
 # ---------------------------------------------------------------------------
