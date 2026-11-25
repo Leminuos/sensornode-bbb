@@ -135,4 +135,4 @@ IMAGE_FEATURES:remove = "${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-log
 # ---------------------------------------------------------------------------
 IMAGE_INSTALL:append = " ${@bb.utils.contains('DISTRO_FEATURES', 'sensornode-devtools', \
     'i2c-tools evtest strace lsof mosquitto-clients inotify-tools \
-     tslib tslib-calibrate tslib-tests systemd-analyze', '', d)}"
+     tslib tslib-calibrate tslib-tests systemd-analyze systemd-bootchart', '', d)}"
