@@ -13,6 +13,7 @@ SRC_URI = "git://github.com/Leminuos/sensornode-core.git;protocol=https;branch=m
            file://10-sensornode-settingsd-bbb.conf \
            file://10-sensornode-webd-bbb.conf \
            file://sensornode-webd.default \
+           file://20-sensornode-after-ui.conf \
 "
 
 SRCREV = "e8c52ca1eb5354ab061f854c6aa5ba1186f5869f"
@@ -71,6 +72,11 @@ do_install:append() {
     install -m 0644 ${WORKDIR}/10-sensornode-webd-bbb.conf ${D}${systemd_system_unitdir}/sensornode-webd.service.d/
 
     install -m 0644 ${WORKDIR}/sensornode-telemetry-data.conf ${D}${nonarch_libdir}/tmpfiles.d/
+
+    for unit in sensornode-otad sensornode-powerd; do
+        install -D -m 0644 ${WORKDIR}/20-sensornode-after-ui.conf \
+            ${D}${systemd_system_unitdir}/$unit.service.d/20-sensornode-after-ui.conf
+    done
 }
 
 FILES:${PN}-otad = " \
@@ -95,6 +101,7 @@ CONFFILES:${PN}-settingsd = "${sysconfdir}/default/sensornode-settingsd"
 FILES:${PN}-powerd = " \
     ${bindir}/sensornode-powerd \
     ${systemd_system_unitdir}/sensornode-powerd.service \
+    ${systemd_system_unitdir}/sensornode-powerd.service.d \
     ${sysconfdir}/default/sensornode-powerd \
 "
 RDEPENDS:${PN}-powerd = "${PN}"

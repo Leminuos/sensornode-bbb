@@ -1,6 +1,6 @@
 [Unit]
 Description=SensorNode Qt HMI
-After=data.mount network.target sensornode-telemetryd.service sensornode-otad.service sensornode-settingsd.service sensornode-powerd.service
+After=data.mount sensornode-settingsd.service sensornode-telemetryd.service
 Wants=data.mount sensornode-telemetryd.service sensornode-otad.service sensornode-settingsd.service sensornode-powerd.service
 StartLimitIntervalSec=60
 StartLimitBurst=5
