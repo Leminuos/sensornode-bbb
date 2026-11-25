@@ -33,6 +33,20 @@ mask_unused_units() {
 }
 ROOTFS_POSTPROCESS_COMMAND += "mask_unused_units; "
 
+# Không có /etc/init.d, rc.local hay phân vùng GPT, còn kernel cmdline do U-Boot đặt cố định nên
+# các tham số systemd.* trên cmdline cũng không dùng tới. Chỉ giữ fstab và getty generator.
+SENSORNODE_MASKED_GENERATORS = "systemd-debug-generator systemd-gpt-auto-generator \
+    systemd-rc-local-generator systemd-run-generator systemd-system-update-generator \
+    systemd-sysv-generator"
+
+mask_unused_generators() {
+    install -d ${IMAGE_ROOTFS}${sysconfdir}/systemd/system-generators
+    for gen in ${SENSORNODE_MASKED_GENERATORS}; do
+        ln -sf /dev/null ${IMAGE_ROOTFS}${sysconfdir}/systemd/system-generators/$gen
+    done
+}
+ROOTFS_POSTPROCESS_COMMAND += "mask_unused_generators; "
+
 # Kernel đặt giờ từ DS3231 trước khi systemd chạy, còn mốc giờ timesyncd lưu nằm trên tmpfs.
 # Vì vậy timesyncd chỉ còn việc đồng bộ NTP, chạy như service thường để không chặn sysinit.target.
 move_timesyncd_off_sysinit() {
