@@ -1,0 +1,4 @@
+# tty1 nằm trên framebuffer mà UI chiếm nên không ai đăng nhập ở đó, console dùng ttyS0.
+disable getty@.service
+# Không cấu hình ramoops
+disable systemd-pstore.service
