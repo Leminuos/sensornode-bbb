@@ -5,6 +5,7 @@ SRC_URI += " \
     file://10-sensornode-mdns.conf \
     file://10-sensornode.preset \
     file://20-sensornode-after-ui.conf \
+    file://20-sensornode-udev-trigger.conf \
 "
 
 do_install:append() {
@@ -21,6 +22,9 @@ do_install:append() {
         install -D -m 0644 ${WORKDIR}/20-sensornode-after-ui.conf \
             ${D}${systemd_system_unitdir}/$unit.d/20-sensornode-after-ui.conf
     done
+
+    install -D -m 0644 ${WORKDIR}/20-sensornode-udev-trigger.conf \
+        ${D}${systemd_system_unitdir}/systemd-udev-trigger.service.d/20-sensornode-udev-trigger.conf
 }
 
 SENSORNODE_AFTER_UI_UNITS = "systemd-logind.service systemd-timesyncd.service systemd-resolved.service \
@@ -32,4 +36,5 @@ FILES:${PN} += " \
     ${systemd_unitdir}/timesyncd.conf.d/ ${systemd_unitdir}/resolved.conf.d/ \
     ${systemd_unitdir}/system-preset/10-sensornode.preset \
     ${@' '.join('${systemd_system_unitdir}/%s.d' % u for u in d.getVar('SENSORNODE_AFTER_UI_UNITS').split())} \
+    ${systemd_system_unitdir}/systemd-udev-trigger.service.d \
 "
