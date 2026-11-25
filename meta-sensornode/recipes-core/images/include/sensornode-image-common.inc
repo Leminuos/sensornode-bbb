@@ -47,6 +47,9 @@ mask_unused_generators() {
 }
 ROOTFS_POSTPROCESS_COMMAND += "mask_unused_generators; "
 
+# hwdb chỉ bổ sung tên hãng, sơ đồ phím, thông số chuột/touchpad. Touchscreen đi qua tslib đọc thẳng evdev.
+BAD_RECOMMENDATIONS += "udev-hwdb"
+
 # Kernel đặt giờ từ DS3231 trước khi systemd chạy, còn mốc giờ timesyncd lưu nằm trên tmpfs.
 # Vì vậy timesyncd chỉ còn việc đồng bộ NTP, chạy như service thường để không chặn sysinit.target.
 move_timesyncd_off_sysinit() {
