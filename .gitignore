@@ -1,4 +1,5 @@
 assets/tmp
+boot-data/
 
 # Thư mục release
 /release/
