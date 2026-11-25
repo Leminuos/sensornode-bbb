@@ -33,6 +33,29 @@ mask_unused_units() {
 }
 ROOTFS_POSTPROCESS_COMMAND += "mask_unused_units; "
 
+# Kernel đặt giờ từ DS3231 trước khi systemd chạy, còn mốc giờ timesyncd lưu nằm trên tmpfs.
+# Vì vậy timesyncd chỉ còn việc đồng bộ NTP, chạy như service thường để không chặn sysinit.target.
+move_timesyncd_off_sysinit() {
+    unit=${IMAGE_ROOTFS}${systemd_system_unitdir}/systemd-timesyncd.service
+    [ -f $unit ] || return 0
+
+    sed -i -e '/^DefaultDependencies=no$/d' \
+           -e '/^Before=time-set.target sysinit.target shutdown.target$/d' \
+           -e '/^Wants=time-set.target$/d' \
+           -e 's/^WantedBy=sysinit.target$/WantedBy=multi-user.target/' $unit
+    if grep -qE '^(DefaultDependencies=no|Before=.*sysinit|WantedBy=sysinit)' $unit; then
+        bbfatal "systemd-timesyncd.service changed upstream, update the sed patterns"
+    fi
+
+    wants=${IMAGE_ROOTFS}${sysconfdir}/systemd/system
+    if [ -L $wants/sysinit.target.wants/systemd-timesyncd.service ]; then
+        rm -f $wants/sysinit.target.wants/systemd-timesyncd.service
+        install -d $wants/multi-user.target.wants
+        ln -sf ${systemd_system_unitdir}/systemd-timesyncd.service $wants/multi-user.target.wants/
+    fi
+}
+ROOTFS_POSTPROCESS_COMMAND += "move_timesyncd_off_sysinit; "
+
 # ---------------------------------------------------------------------------
 # sensornode-ota
 # ---------------------------------------------------------------------------
